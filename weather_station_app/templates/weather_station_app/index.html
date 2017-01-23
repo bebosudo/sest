@@ -1,0 +1,10 @@
+{% if latest_channels_edited %}
+    <p>Displaying the latest {{ latest_channels_edited|length }} channel(s) edited:</p>
+    <ul>
+    {% for channel in latest_channels_edited %}
+        <li><a href="/{{ channel.id }}/">{{ channel.id }}</a></li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>No channels are available.</p>
+{% endif %}

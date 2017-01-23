@@ -1,0 +1,10 @@
+{% if latest_records_added %}
+    <p>Displaying last {{ latest_records_added|length }} record(s):</p>
+    <ul>
+    {% for record in latest_records_added %}
+        <li>{{ record.insertion_time }}.</li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>No records are available.</p>
+{% endif %}
