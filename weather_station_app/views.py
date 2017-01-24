@@ -1,5 +1,5 @@
-from django.http import HttpResponse
-from django.shortcuts import get_object_or_404  # , render
+from django.http import HttpResponse, HttpResponseBadRequest
+from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.views import generic
 
@@ -51,18 +51,18 @@ def upload(request, channel_id):
     """
 
     if request.method != "POST":
-        return HttpResponse("Only POST requests allowed.", status=400)
+        return HttpResponseBadRequest("Only POST requests allowed.")
 
     write_API_key = request.META.get("HTTP_{}".format(HTTP_WRITE_KEY.upper()))
 
     if not write_API_key:
-        return HttpResponse("Missing writing API key.", status=400)
+        return HttpResponseBadRequest("Missing writing API key.")
 
     channel = get_object_or_404(Channel, pk=channel_id)
 
     if str(channel.write_key) != write_API_key:
-        return HttpResponse("Incorrect API key associated with the channel you "
-                            "have chosen.", status=400)
+        return HttpResponseBadRequest("Incorrect API key associated with the "
+                                      "channel you have chosen.")
 
     # Collect the fields value from the body of the http POST
     # message into a dictionary.
@@ -87,7 +87,7 @@ def upload(request, channel_id):
             i += 1
             Field.objects.create(record=r, field_no=i, value=val)
 
-            return HttpResponse(status=200)
+            return HttpResponse()
 
     else:
         return HttpResponse("Send at least one field inside your message.",
