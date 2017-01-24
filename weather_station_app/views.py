@@ -30,7 +30,7 @@ class ChannelView(generic.ListView):
 
 
 def upload(request, channel_id):
-    """View that analyses and performs some checks on an HTTP request 
+    """View that analyses and performs some checks on an HTTP request
     submitted to a specific channel.
 
     Example of POST request:
@@ -49,46 +49,46 @@ def upload(request, channel_id):
     Reference for the HTTP status codes
     https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
     """
-    
-    if request.method == "POST":
-        write_API_key = request.META.get("HTTP_{}".format(HTTP_WRITE_KEY.upper()))
 
-        if write_API_key:
-            channel = get_object_or_404(Channel, pk=channel_id)
-
-            if str(channel.write_key) == write_API_key:
-                # Collect the fields value from the body of the http POST 
-                # message into a dictionary.
-                fields = {k: v for (k, v) in request.POST.items()
-                               if field_pattern.match(k)}
-
-                if len(fields) > Record.MAX_NUMBER_FIELDS:
-                    return HttpResponse("Max number of fields exceeded.", status=406)
-
-                elif any(fields):
-                    r = Record.objects.create(channel=channel,
-                                              insertion_time=timezone.now() )
-
-                    # Create new Field objects to link to the newly created record.
-                    for i, k in enumerate(fields):
-                        val = fields[k]
-                        # Store in the db only the fields with a value.
-                        if not val:
-                            continue
-
-                        # Shift the field counter by 1, since enumerate starts from 0.
-                        i += 1
-                        Field.objects.create(record=r, field_no=i, value=val)
-
-                        return HttpResponse(status=200)
-
-                else:
-                    return HttpResponse("Send at least one field inside your "
-                                        "message.", status=406)
-            else:
-                return HttpResponse("Incorrect API key associated with the "
-                             "channel you have chosen.", status=400)
-        else:
-            return HttpResponse("Missing writing API key.", status=400)
-    else:
+    if request.method != "POST":
         return HttpResponse("Only POST requests allowed.", status=400)
+
+    write_API_key = request.META.get("HTTP_{}".format(HTTP_WRITE_KEY.upper()))
+
+    if not write_API_key:
+        return HttpResponse("Missing writing API key.", status=400)
+
+    channel = get_object_or_404(Channel, pk=channel_id)
+
+    if str(channel.write_key) != write_API_key:
+        return HttpResponse("Incorrect API key associated with the channel you "
+                            "have chosen.", status=400)
+
+    # Collect the fields value from the body of the http POST
+    # message into a dictionary.
+    fields = {k: v for (k, v) in request.POST.items()
+              if field_pattern.match(k)}
+
+    if len(fields) > Record.MAX_NUMBER_FIELDS:
+        return HttpResponse("Max number of fields exceeded.", status=406)
+
+    elif any(fields):
+        r = Record.objects.create(channel=channel,
+                                  insertion_time=timezone.now())
+
+        # Create new Field objects to link to the newly created record.
+        for i, k in enumerate(fields):
+            val = fields[k]
+            # Store in the db only the fields with a value.
+            if not val:
+                continue
+
+            # Shift the field counter by 1, since enumerate starts from 0.
+            i += 1
+            Field.objects.create(record=r, field_no=i, value=val)
+
+            return HttpResponse(status=200)
+
+    else:
+        return HttpResponse("Send at least one field inside your message.",
+                            status=406)
