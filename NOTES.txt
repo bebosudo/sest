@@ -1,0 +1,7 @@
+NOTES
+
+* diagram to choose the proper exit status:
+    http://racksburg.com/choosing-an-http-status-code/
+
+* test coverages:
+    https://coverage.readthedocs.io/en/coverage-4.3.4/

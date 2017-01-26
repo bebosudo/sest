@@ -64,8 +64,8 @@ def upload(request, channel_id):
         return HttpResponseBadRequest("Incorrect API key associated with the "
                                       "channel you have chosen.")
 
-    # Collect the fields value from the body of the http POST
-    # message into a dictionary.
+    # Collect the fields value from the body of the http POST message into a
+    # dictionary. Use a regex to get only the fields like 'field<number>'.
     fields = {k: v for (k, v) in request.POST.items()
               if field_pattern.match(k)}
 

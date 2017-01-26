@@ -15,7 +15,7 @@ class User(models.Model):
 
 class Channel(models.Model):
     # `id' field is automatically provided by django, but I prefer to state it.
-    id = models.AutoField(primary_key=True)
+    # id = models.AutoField(primary_key=True)
     title = models.CharField(max_length=200, blank=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     last_update = models.DateTimeField(blank=True)
