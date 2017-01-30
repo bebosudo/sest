@@ -3,12 +3,15 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.views import generic
 
-from .models import Channel, Record, Field
+# from .models import Channel, User, Record, Field
+from .models import *
 
 import re
 
 field_pattern = re.compile(r"(field[0-9]+)")
 HTTP_WRITE_KEY = "X_Write_API_Key"
+TEMPERATURE_THRESHOLD = 35
+HUMIDITY_THRESHOLD = 90
 
 
 class IndexView(generic.ListView):
@@ -83,12 +86,34 @@ def upload(request, channel_id):
             if not val:
                 continue
 
-            # Shift the field counter by 1, since enumerate starts from 0.
+            # Shift the field counter by 1, since enumerate starts counting
+            # from 0.
             i += 1
-            Field.objects.create(record=r, field_no=i, value=val)
+            r.field_set.create(field_no=i, value=val)
 
-            return HttpResponse()
+        return HttpResponse()
 
     else:
         return HttpResponse("Send at least one field inside your message.",
                             status=406)
+
+
+def condition_field1(field):
+    # check whether temperature is greater than..
+    return field.value > TEMPERATURE_THRESHOLD
+
+
+def condition_field2(field):
+    # check whether humidity is greater than..
+    return field.value > HUMIDITY_THRESHOLD
+
+
+def check_conditions(record):
+    """Given a certain record, with several fields, check whether they don't
+    satisfy anymore the conditions.
+    """
+
+    status = False
+    for f in record.field_set.all():
+        if f.field_no == 1 and status:
+            check_field1(f)

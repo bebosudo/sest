@@ -5,3 +5,34 @@ NOTES
 
 * test coverages:
     https://coverage.readthedocs.io/en/coverage-4.3.4/
+
+
+
+------------------------------------------------------------------------------------------------------------------------------
+
+
+
+ANYMAIL errors (with the `postmark' backend, but I get the same error with mailgun):
+
+>>> send_mail("Subject", "text body", "from@example.com", ["bebosudo@gmail.com"], html_message="<html>html body</html>")
+
+    Traceback (most recent call last):
+      File "/home/bebo/Documents/projects/django/venv/lib/python3.5/site-packages/django/utils/module_loading.py", line 23, in import_string
+        return getattr(module, class_name)
+    AttributeError: module 'anymail.backends.postmark' has no attribute 'EmailBackend'
+
+    During handling of the above exception, another exception occurred:
+
+    Traceback (most recent call last):
+      File "<console>", line 1, in <module>
+      File "/home/bebo/Documents/projects/django/venv/lib/python3.5/site-packages/django/core/mail/__init__.py", line 56, in send_mail
+        fail_silently=fail_silently,
+      File "/home/bebo/Documents/projects/django/venv/lib/python3.5/site-packages/django/core/mail/__init__.py", line 36, in get_connection
+        klass = import_string(backend or settings.EMAIL_BACKEND)
+      File "/home/bebo/Documents/projects/django/venv/lib/python3.5/site-packages/django/utils/module_loading.py", line 27, in import_string
+        six.reraise(ImportError, ImportError(msg), sys.exc_info()[2])
+      File "/home/bebo/Documents/projects/django/venv/lib/python3.5/site-packages/django/utils/six.py", line 685, in reraise
+        raise value.with_traceback(tb)
+      File "/home/bebo/Documents/projects/django/venv/lib/python3.5/site-packages/django/utils/module_loading.py", line 23, in import_string
+        return getattr(module, class_name)
+    ImportError: Module "anymail.backends.postmark" does not define a "EmailBackend" attribute/class
