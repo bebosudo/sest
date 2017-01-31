@@ -1,7 +1,7 @@
 TODO:
 -----
 
-1. set up the email sending module.
+1. ~~set up the email sending module.~~
 
 1. save every field as a string, and save (inside the channel class) the `encoding' to use to recover the value from that string.
     * perform the needed checks of consistency before accepting and saving the objects to the DB.
