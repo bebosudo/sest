@@ -9,6 +9,7 @@ from .models import *
 import re
 
 field_pattern = re.compile(r"(field[0-9]+)")
+field_extract_number = re.compile(r"field([0-9]+)")
 HTTP_WRITE_KEY = "X_Write_API_Key"
 TEMPERATURE_THRESHOLD = 35
 HUMIDITY_THRESHOLD = 90
@@ -68,11 +69,11 @@ def upload(request, channel_id):
                                       "channel you have chosen.")
 
     # Collect the fields value from the body of the http POST message into a
-    # dictionary. Use a regex to get only the fields like 'field<number>'.
+    # dictionary. Use a regex to select only the fields like 'field<number>'.
     fields = {k: v for (k, v) in request.POST.items()
               if field_pattern.match(k)}
 
-    if len(fields) > Record.MAX_NUMBER_FIELDS:
+    if len(fields) > Channel.MAX_NUMBER_FIELDS:
         return HttpResponse("Max number of fields exceeded.", status=406)
 
     elif any(fields):
@@ -80,16 +81,21 @@ def upload(request, channel_id):
                                   insertion_time=timezone.now())
 
         # Create new Field objects to link to the newly created record.
-        for i, k in enumerate(fields):
-            val = fields[k]
+        for field_name, val in fields.items():
             # Store in the db only the fields with a value.
+            # TODO: check whether this is useful. R9.
             if not val:
                 continue
 
-            # Shift the field counter by 1, since enumerate starts counting
-            # from 0.
-            i += 1
-            r.field_set.create(field_no=i, value=val)
+            # Extract the field number and pass it to create the field element.
+            # This allows to keep track of the "position" of the field passed
+            # in the upload request.
+            # We can select just the first occurrence since we already
+            # previously parsed the fields with another regex.
+            field_no = field_extract_number.findall(field_name)[0]
+            field_no = int(field_no)
+
+            r.field_set.create(field_no=field_no, value=val)
 
         return HttpResponse()
 

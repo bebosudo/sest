@@ -1,8 +1,7 @@
 from django.test import TestCase, Client
-# from django.test.utils import override_settings
 from django.utils import timezone
 
-from .models import User, Channel, Record
+from .models import *
 
 import uuid
 
@@ -19,13 +18,15 @@ class UploadView(TestCase):
         channel_id = 1234
 
         u = User.objects.create(nick="test", registration_time=timezone.now())
-        ch = Channel.objects.create(user=u, id=channel_id, last_update=timezone.now())
+        ch = Channel.objects.create(
+            user=u, id=channel_id, last_update=timezone.now(), number_fields=2)
         channel_uuid = str(ch.write_key)
 
         d = {'field2': 45}
         response = c.post('/{}/upload/'.format(channel_id), d,
                           HTTP_X_WRITE_API_KEY=channel_uuid)
 
+        self.assertEqual(ch.record_set.all()[0].field_set.count(), len(d))
         self.assertEqual(response.status_code, 200)
 
     def test_upload_exceeds_no_fields(self):
@@ -39,10 +40,12 @@ class UploadView(TestCase):
         channel_id = 1234
 
         u = User.objects.create(nick="test", registration_time=timezone.now())
-        ch = Channel.objects.create(user=u, id=channel_id, last_update=timezone.now())
+        ch = Channel.objects.create(
+            user=u, id=channel_id, last_update=timezone.now(), number_fields=2)
         channel_uuid = str(ch.write_key)
 
-        d = {'field{}'.format(i+1): i+1 for i in range(Record.MAX_NUMBER_FIELDS+2)}
+        d = {'field{}'.format(i + 1): i +
+             1 for i in range(Channel.MAX_NUMBER_FIELDS + 2)}
         response = c.post('/{}/upload/'.format(channel_id), d,
                           HTTP_X_WRITE_API_KEY=channel_uuid)
 
@@ -58,7 +61,8 @@ class UploadView(TestCase):
         channel_id = 1234
 
         u = User.objects.create(nick="test", registration_time=timezone.now())
-        ch = Channel.objects.create(user=u, id=channel_id, last_update=timezone.now())
+        ch = Channel.objects.create(
+            user=u, id=channel_id, last_update=timezone.now(), number_fields=2)
         channel_uuid = str(ch.write_key)
 
         d = {}
@@ -78,7 +82,8 @@ class UploadView(TestCase):
         channel_id = 1234
 
         u = User.objects.create(nick="test", registration_time=timezone.now())
-        ch = Channel.objects.create(user=u, id=channel_id, last_update=timezone.now())
+        Channel.objects.create(
+            user=u, id=channel_id, last_update=timezone.now(), number_fields=2)
         channel_uuid = uuid.uuid4()
 
         d = {'field2': 45}
@@ -98,12 +103,13 @@ class UploadView(TestCase):
         channel_id = 1234
 
         u = User.objects.create(nick="test", registration_time=timezone.now())
-        ch = Channel.objects.create(user=u, id=channel_id, last_update=timezone.now())
+        Channel.objects.create(
+            user=u, id=channel_id, last_update=timezone.now(), number_fields=2)
         # channel_uuid = uuid.uuid4()
 
         d = {'field2': 45}
         response = c.post('/{}/upload/'.format(channel_id), d)
-                          # HTTP_X_WRITE_API_KEY=channel_uuid)
+        # HTTP_X_WRITE_API_KEY=channel_uuid)
 
         self.assertEqual(response.status_code, 400)
 
@@ -118,12 +124,103 @@ class UploadView(TestCase):
         channel_id = 1234
 
         u = User.objects.create(nick="test", registration_time=timezone.now())
-        ch = Channel.objects.create(user=u, id=channel_id, last_update=timezone.now())
+        Channel.objects.create(
+            user=u, id=channel_id, last_update=timezone.now(), number_fields=2)
         # channel_uuid = uuid.uuid4()
 
         d = {'field2': 45}
         response = c.get('/{}/upload/'.format(channel_id), d)
-                          # HTTP_X_WRITE_API_KEY=channel_uuid)
+        # HTTP_X_WRITE_API_KEY=channel_uuid)
 
         self.assertEqual(response.status_code, 400)
 
+
+class FieldEncoding(TestCase):
+
+    def test_fields_correct(self):
+        """Create a new record and test the number and values of fields saved.
+        """
+
+        c = Client()
+        u = User.objects.create(nick="test",
+                                registration_time=timezone.now())
+        ch = Channel.objects.create(user=u,
+                                    last_update=timezone.now(),
+                                    number_fields=2
+                                    )
+        ch_id = ch.id
+        ch.fieldencoding_set.create(field_no=1, encoding="float")
+        ch.fieldencoding_set.create(field_no=2, encoding="float")
+
+        channel_uuid = str(ch.write_key)
+
+        d = {'field2': 3.141592}
+        c.post('/{}/upload/'.format(ch_id), d,
+               HTTP_X_WRITE_API_KEY=channel_uuid)
+
+        # r contains the record object just created.
+        r = ch.record_set.all()[0]
+        self.assertEqual(r.field_set.count(), len(d))
+
+        self.assertEqual(r.field_set.all()[0].get_real_value(), d['field2'])
+
+    def test_field_encoding_no_operation_defined(self):
+        """Create a new record, but set a wrong encoding in the channel.
+
+        This should never happen, since the user should choose an encoding (
+        boolean, int, float, etc) from a list with pre-defined objects.
+        """
+
+        c = Client()
+        u = User.objects.create(nick="test",
+                                registration_time=timezone.now())
+        ch = Channel.objects.create(user=u,
+                                    last_update=timezone.now(),
+                                    number_fields=2
+                                    )
+        ch_id = ch.id
+        ch.fieldencoding_set.create(field_no=1, encoding="float")
+        # Wrong encoding set here.
+        ch.fieldencoding_set.create(field_no=2, encoding="asdf")
+
+        channel_uuid = str(ch.write_key)
+
+        d = {'field2': 3.141592}
+        c.post('/{}/upload/'.format(ch_id), d,
+               HTTP_X_WRITE_API_KEY=channel_uuid)
+
+        # r contains the record object just created.
+        r = ch.record_set.all()[0]
+
+        with self.assertRaises(ValueError):
+            r.field_set.all()[0].get_real_value()
+
+    def test_field_encoding_wrong_value_saved(self):
+        """Create a new record with a wrong value.
+
+        This should never happen, since the values should be checked for
+        consistency right before saving them in the DB.
+        """
+
+        c = Client()
+        u = User.objects.create(nick="test",
+                                registration_time=timezone.now())
+        ch = Channel.objects.create(user=u,
+                                    last_update=timezone.now(),
+                                    number_fields=2
+                                    )
+        ch_id = ch.id
+        ch.fieldencoding_set.create(field_no=1, encoding="float")
+        ch.fieldencoding_set.create(field_no=2, encoding="float")
+
+        channel_uuid = str(ch.write_key)
+
+        d = {'field2': 'asdf'}
+        c.post('/{}/upload/'.format(ch_id), d,
+               HTTP_X_WRITE_API_KEY=channel_uuid)
+
+        # r contains the record object just created.
+        r = ch.record_set.all()[0]
+
+        with self.assertRaises(ValueError):
+            r.field_set.all()[0].get_real_value()
