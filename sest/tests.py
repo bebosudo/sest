@@ -1,9 +1,15 @@
 from django.test import TestCase, Client
 from django.utils import timezone
+from django.conf import settings
 
 from .models import *
 
 import uuid
+from postmarker.core import PostmarkClient
+
+POSTMARK_API_TEST = "POSTMARK_API_TEST"
+
+postmark_client_test = PostmarkClient(token=POSTMARK_API_TEST)
 
 
 class UploadView(TestCase):
@@ -135,19 +141,25 @@ class UploadView(TestCase):
         self.assertEqual(response.status_code, 400)
 
 
+def create_testclient_user_channel():
+    client = Client()
+    u = User.objects.create(nick="test",
+                            registration_time=timezone.now())
+    ch = Channel.objects.create(user=u,
+                                last_update=timezone.now(),
+                                number_fields=2
+                                )
+    return client, u, ch
+
+
 class FieldEncoding(TestCase):
 
     def test_fields_correct(self):
         """Create a new record and test the number and values of fields saved.
         """
 
-        c = Client()
-        u = User.objects.create(nick="test",
-                                registration_time=timezone.now())
-        ch = Channel.objects.create(user=u,
-                                    last_update=timezone.now(),
-                                    number_fields=2
-                                    )
+        c, u, ch = create_testclient_user_channel()
+
         ch_id = ch.id
         ch.fieldencoding_set.create(field_no=1, encoding="float")
         ch.fieldencoding_set.create(field_no=2, encoding="float")
@@ -162,7 +174,7 @@ class FieldEncoding(TestCase):
         r = ch.record_set.all()[0]
         self.assertEqual(r.field_set.count(), len(d))
 
-        self.assertEqual(r.field_set.all()[0].get_real_value(), d['field2'])
+        self.assertEqual(r.field_set.all()[0].real_value, d['field2'])
 
     def test_field_encoding_no_operation_defined(self):
         """Create a new record, but set a wrong encoding in the channel.
@@ -171,13 +183,8 @@ class FieldEncoding(TestCase):
         boolean, int, float, etc) from a list with pre-defined objects.
         """
 
-        c = Client()
-        u = User.objects.create(nick="test",
-                                registration_time=timezone.now())
-        ch = Channel.objects.create(user=u,
-                                    last_update=timezone.now(),
-                                    number_fields=2
-                                    )
+        c, u, ch = create_testclient_user_channel()
+
         ch_id = ch.id
         ch.fieldencoding_set.create(field_no=1, encoding="float")
         # Wrong encoding set here.
@@ -193,7 +200,7 @@ class FieldEncoding(TestCase):
         r = ch.record_set.all()[0]
 
         with self.assertRaises(ValueError):
-            r.field_set.all()[0].get_real_value()
+            r.field_set.all()[0].real_value
 
     def test_field_encoding_wrong_value_saved(self):
         """Create a new record with a wrong value.
@@ -202,13 +209,8 @@ class FieldEncoding(TestCase):
         consistency right before saving them in the DB.
         """
 
-        c = Client()
-        u = User.objects.create(nick="test",
-                                registration_time=timezone.now())
-        ch = Channel.objects.create(user=u,
-                                    last_update=timezone.now(),
-                                    number_fields=2
-                                    )
+        c, u, ch = create_testclient_user_channel()
+
         ch_id = ch.id
         ch.fieldencoding_set.create(field_no=1, encoding="float")
         ch.fieldencoding_set.create(field_no=2, encoding="float")
@@ -223,4 +225,19 @@ class FieldEncoding(TestCase):
         r = ch.record_set.all()[0]
 
         with self.assertRaises(ValueError):
-            r.field_set.all()[0].get_real_value()
+            r.field_set.all()[0].real_value
+
+
+class EmailSending(TestCase):
+
+    def t_send_correct_email(self):
+        c, u, ch = create_testclient_user_channel()
+        ch.notification_email = settings.DEFAULT_FROM_EMAIL
+
+
+class CheckAndReactTests(TestCase):
+
+    def t_react_failing(self):
+        c, u, ch = create_testclient_user_channel()
+        ch.notification_email = settings.DEFAULT_FROM_EMAIL
+        pass

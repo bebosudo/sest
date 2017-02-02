@@ -1,6 +1,6 @@
 from django.db import models
 
-from email import send_email_wrapper
+from .email_collection import send_email_wrapper
 
 # from datetime import datetime
 import uuid
@@ -53,7 +53,6 @@ class Channel(models.Model):
         return "{} (created by user: '{}')".format(str(self.id),
                                                    repr(self.user))
 
-    @property
     def get_encoding(self, field_no):
         return self.fieldencoding_set.get(field_no=field_no).encoding
 
@@ -62,7 +61,7 @@ class Channel(models.Model):
             raise ValueError("No email connected to the "
                              "channel {}.".format(self))
 
-        send_email_wrapper(to_list=[self.notification_email],
+        send_email_wrapper(recipients_list=[self.notification_email],
                            subject="Alert. Condition validated on channel "
                            "{}".format(self),
                            text_body=message)
