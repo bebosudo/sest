@@ -5,6 +5,7 @@ from email import send_email_wrapper
 # from datetime import datetime
 import uuid
 import operator as op
+from itertools import product
 
 
 class User(models.Model):
@@ -52,7 +53,8 @@ class Channel(models.Model):
         return "{} (created by user: '{}')".format(str(self.id),
                                                    repr(self.user))
 
-    def get_type(self, field_no):
+    @property
+    def get_encoding(self, field_no):
         return self.fieldencoding_set.get(field_no=field_no).encoding
 
     def send_email(self, message):
@@ -66,10 +68,16 @@ class Channel(models.Model):
                            text_body=message)
 
     def check_and_react(self, record_to_check):
-        for cond in self.conditionandreaction_set.all():
-            # Use a @property on Field.get_real_value
-            pass
+        for cond, f in product(self.conditionandreaction_set.all(),
+                               record_to_check.field_set.all()):
+            reaction = cond.check_condition(f)
+            if reaction:
+                # If a condition is validated, trigger the relative action and
+                # then quit the execution.
+                cond.react(record_to_check)
+                return True
 
+        return False
 
 
 class FieldEncoding(models.Model):
@@ -121,42 +129,49 @@ class ConditionAndReaction(models.Model):
 
     channel = models.ForeignKey(Channel, on_delete=models.CASCADE)
     condition_op = models.CharField(max_length=2)
-    field_no = models.PositiveSmallIntegerField()
     value = models.CharField(max_length=20)
-    # The second value has to be filled (in the forms) only with `bt' or `ot'.
+
+    # The field (of the record) on which the condition reacts on.
+    # TODO: connect this to the fields of the channel.
+    field_no = models.PositiveSmallIntegerField()
+    # The second value has to be filled (in the forms) only for `bt' or `ot'.
     value_optional = models.CharField(max_length=20, null=True, blank=True)
 
     # Store the action the user choose to perform if the condition is met.
     action = models.CharField(max_length=10)
 
-    def check_condition(self, value_to_check):
+    def check_condition(self, field_obj):
+
+        if field_obj.field_no != self.field_no:
+            return False
+
         if self.condition_op == "lt":
-            return op.lt(value_to_check, self.value)
+            return op.lt(field_obj.value, self.value)
         elif self.condition_op == "le":
-            return op.le(value_to_check, self.value)
+            return op.le(field_obj.value, self.value)
         elif self.condition_op == "eq":
-            return op.eq(value_to_check, self.value)
+            return op.eq(field_obj.value, self.value)
         elif self.condition_op == "ne":
-            return op.ne(value_to_check, self.value)
+            return op.ne(field_obj.value, self.value)
         elif self.condition_op == "gt":
-            return op.gt(value_to_check, self.value)
+            return op.gt(field_obj.value, self.value)
         elif self.condition_op == "ge":
-            return op.ge(value_to_check, self.value)
+            return op.ge(field_obj.value, self.value)
 
         elif self.condition_op == "bt":
-            return self.value < value_to_check < self.value_optional
+            return self.value < field_obj.value < self.value_optional
         elif self.condition_op == "ot":
-            return not (self.value < value_to_check < self.value_optional)
+            return not (self.value < field_obj.value < self.value_optional)
 
         # TODO: test correctness with str and bytes objects (py3).
         elif self.condition_op == "cn":
-            return self.value in value_to_check
+            return self.value in field_obj.value
         elif self.condition_op == "nc":
-            return self.value not in value_to_check
+            return self.value not in field_obj.value
         elif self.condition_op == "sw":
-            return value_to_check.startswith(self.value)
+            return field_obj.value.startswith(self.value)
         elif self.condition_op == "ew":
-            return value_to_check.endswith(self.value)
+            return field_obj.value.endswith(self.value)
         # We can rely on eq and ne in the arithmetic section also for strings.
 
         # In case no operation is defined for the given condition_op string:
@@ -196,8 +211,9 @@ class Field(models.Model):
     def __str__(self):
         return "{} - {}".format(self.record, self.value)
 
-    def get_real_value(self):
-        encoding = self.record.channel.get_type(field_no=self.field_no)
+    @property
+    def real_value(self):
+        encoding = self.record.channel.get_encoding(field_no=self.field_no)
 
         # This changes the default exception error to something more
         # verbose.
@@ -223,7 +239,7 @@ class Field(models.Model):
         else:
             # If no decoding operations are defined to restore the value:
             raise ValueError("No decoding operation defined in order to "
-                             "restore values at position no. {} of the channel"
+                             "restore values at field no. {} of the channel"
                              " {}. Encoding proposed: '{}'; example of a value"
                              " saved: '{}'.".format(
                                  self.field_no,
