@@ -5,7 +5,7 @@
 
 # Copy and execute this directly into the django shell.
 
-from weather_station_app.models import *
+from sest.models import *
 from django.utils import timezone
 from datetime import datetime
 

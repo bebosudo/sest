@@ -16,7 +16,7 @@ HUMIDITY_THRESHOLD = 90
 
 
 class IndexView(generic.ListView):
-    template_name = 'weather_station_app/index.html'
+    template_name = 'sest/index.html'
     context_object_name = 'latest_channels_edited'
 
     def get_queryset(self):
@@ -24,7 +24,7 @@ class IndexView(generic.ListView):
 
 
 class ChannelView(generic.ListView):
-    template_name = 'weather_station_app/channel.html'
+    template_name = 'sest/channel.html'
     context_object_name = 'latest_records_added'
 
     n_elements_display = 10

@@ -2,8 +2,8 @@ from django.conf import settings
 # pip install postmarker
 
 
-def send_email_wrapper(from_field, to_list, subject, text_body=None,
-                       html_body=None):
+def send_email_wrapper(from_field=settings.DEFAULT_FROM_EMAIL, to_list,
+                       subject, text_body=None, html_body=None):
     """Just a wrapper around different third-party services used to send email.
 
     So far, I only pass the arguments from this function to another one, but

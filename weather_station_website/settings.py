@@ -34,7 +34,7 @@ ALLOWED_HOSTS = ['testserver', '127.0.0.1']
 # Application definition
 
 INSTALLED_APPS = [
-    'weather_station_app.apps.WeatherStationAppConfig',
+    'sest.apps.SestConfig',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',

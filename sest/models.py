@@ -1,7 +1,10 @@
 from django.db import models
 
+from email import send_email_wrapper
+
 # from datetime import datetime
 import uuid
+import operator as op
 
 
 class User(models.Model):
@@ -11,6 +14,22 @@ class User(models.Model):
 
     def __str__(self):
         return self.nick
+
+
+class NotificationEmail(models.Model):
+    """Stores user's emails to which send channel activities.
+
+    These objects are different from the email field of the user, because
+    a user could choose to send notifications/alerts to different emails (and
+    for example not to the one used to register to the service) for each
+    channel he creates.
+    By design, only a single email can be used to communicate with
+    """
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    # This address should be validated, to make sure that the user really owns
+    # the email address he declares.
+    address = models.EmailField(primary_key=True)
 
 
 class Channel(models.Model):
@@ -25,6 +44,10 @@ class Channel(models.Model):
     write_key = models.UUIDField(default=uuid.uuid4, editable=False)
     number_fields = models.PositiveSmallIntegerField()
 
+    notification_email = models.ForeignKey(NotificationEmail,
+                                           blank=True, null=True,
+                                           on_delete=models.CASCADE)
+
     def __str__(self):
         return "{} (created by user: '{}')".format(str(self.id),
                                                    repr(self.user))
@@ -32,14 +55,126 @@ class Channel(models.Model):
     def get_type(self, field_no):
         return self.fieldencoding_set.get(field_no=field_no).encoding
 
+    def send_email(self, message):
+        if not self.notification_email:
+            raise ValueError("No email connected to the "
+                             "channel {}.".format(self))
+
+        send_email_wrapper(to_list=[self.notification_email],
+                           subject="Alert. Condition validated on channel "
+                           "{}".format(self),
+                           text_body=message)
+
+    def check_and_react(self, record_to_check):
+        for cond in self.conditionandreaction_set.all():
+            # Use a @property on Field.get_real_value
+            pass
+
+
 
 class FieldEncoding(models.Model):
     """Store the encoding used for each field the user registers, in order to
     recreate the original value.
     """
+
     channel = models.ForeignKey(Channel, on_delete=models.CASCADE)
     field_no = models.PositiveSmallIntegerField()
     encoding = models.CharField(max_length=50)
+
+
+class ConditionAndReaction(models.Model):
+    """Associate some criteria to the channel, in order to trigger an action
+    (such as sending an email) in case one of these is satisfied.
+
+    Examples of conditions:
+    field1 _is_less_than_                X
+    field2 _is_greater_or_equal_to_      X
+    field1 _is_in_the_range_between_     (value1 and value2)
+    field1 _is_out_of_the_range_between_ (value1 and value2)
+
+    Valid arythmetic operations are the ones present in the Python stdlib:
+    https://docs.python.org/3/library/operator.html
+    * lt: less than
+    * le: less than or equal
+    * eq: equal
+    * ne: not equal/different from
+    * gt: greather than
+    * ge: greather than or equal
+
+    Moreover, some other arithmetic operators are provided.
+    Note that for these two operations, the boundaries are not included (to
+     avoid redundancy): to check also the boundaries, create more Conditions
+     linked to the channel.
+    * bt: between (the two limits)
+    * ot: out (of the two limits)
+
+    Some operators are provided for fields with string values:
+    * cn: contains
+    * nc: doesn't contain
+    * sw: starts with
+    * ew: ends with
+    * eq: is equal
+    * ne: isn't equal/is different from
+    """
+
+    # FIXME: implement all the checks to validate user's input.
+
+    channel = models.ForeignKey(Channel, on_delete=models.CASCADE)
+    condition_op = models.CharField(max_length=2)
+    field_no = models.PositiveSmallIntegerField()
+    value = models.CharField(max_length=20)
+    # The second value has to be filled (in the forms) only with `bt' or `ot'.
+    value_optional = models.CharField(max_length=20, null=True, blank=True)
+
+    # Store the action the user choose to perform if the condition is met.
+    action = models.CharField(max_length=10)
+
+    def check_condition(self, value_to_check):
+        if self.condition_op == "lt":
+            return op.lt(value_to_check, self.value)
+        elif self.condition_op == "le":
+            return op.le(value_to_check, self.value)
+        elif self.condition_op == "eq":
+            return op.eq(value_to_check, self.value)
+        elif self.condition_op == "ne":
+            return op.ne(value_to_check, self.value)
+        elif self.condition_op == "gt":
+            return op.gt(value_to_check, self.value)
+        elif self.condition_op == "ge":
+            return op.ge(value_to_check, self.value)
+
+        elif self.condition_op == "bt":
+            return self.value < value_to_check < self.value_optional
+        elif self.condition_op == "ot":
+            return not (self.value < value_to_check < self.value_optional)
+
+        # TODO: test correctness with str and bytes objects (py3).
+        elif self.condition_op == "cn":
+            return self.value in value_to_check
+        elif self.condition_op == "nc":
+            return self.value not in value_to_check
+        elif self.condition_op == "sw":
+            return value_to_check.startswith(self.value)
+        elif self.condition_op == "ew":
+            return value_to_check.endswith(self.value)
+        # We can rely on eq and ne in the arithmetic section also for strings.
+
+        # In case no operation is defined for the given condition_op string:
+        raise ValueError("No conditional operation is defined for operation "
+                         "'{}'.".format(self.condition_op))
+
+    def react(self, record_to_send):
+        sentence = ("The following record, registered on: {}, verified one of"
+                    " your conditions you set on channel {}.".format(
+                        record_to_send,
+                        self.channel)
+                    )
+
+        if self.action == "email":
+            self.channel.send_email(message=sentence)
+
+        # So far there are no other actions allowed to be executed.
+        raise ValueError("No other actions allowed.")
 
 
 class Record(models.Model):

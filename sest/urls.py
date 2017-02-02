@@ -2,7 +2,7 @@ from django.conf.urls import url
 
 from . import views
 
-app_name = 'weather_station_app'
+app_name = 'sest'
 
 
 urlpatterns = [

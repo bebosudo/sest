@@ -18,5 +18,5 @@ from django.contrib import admin
 
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
-    url(r'^', include('weather_station_app.urls')),
+    url(r'^', include('sest.urls')),
 ]
