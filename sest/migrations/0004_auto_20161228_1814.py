@@ -8,7 +8,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('weather_station_app', '0003_auto_20161228_1759'),
+        ('sest', '0003_auto_20161228_1759'),
     ]
 
     operations = [

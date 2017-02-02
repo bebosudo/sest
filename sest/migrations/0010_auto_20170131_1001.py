@@ -9,7 +9,7 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('weather_station_app', '0009_auto_20170126_1905'),
+        ('sest', '0009_auto_20170126_1905'),
     ]
 
     operations = [
@@ -40,6 +40,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='fieldencoding',
             name='channel',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='weather_station_app.Channel'),
+            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='sest.Channel'),
         ),
     ]

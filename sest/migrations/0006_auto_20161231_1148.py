@@ -9,7 +9,7 @@ import uuid
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('weather_station_app', '0005_auto_20161228_1838'),
+        ('sest', '0005_auto_20161228_1838'),
     ]
 
     operations = [

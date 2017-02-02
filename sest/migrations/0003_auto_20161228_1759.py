@@ -9,7 +9,7 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('weather_station_app', '0002_auto_20161227_1545'),
+        ('sest', '0002_auto_20161227_1545'),
     ]
 
     operations = [
@@ -24,7 +24,8 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='User',
             fields=[
-                ('nick', models.CharField(max_length=50, primary_key=True, serialize=False)),
+                ('nick', models.CharField(max_length=50,
+                                          primary_key=True, serialize=False)),
                 ('email', models.EmailField(max_length=254)),
                 ('registration_time', models.DateField()),
                 ('description', models.CharField(max_length=500)),
@@ -38,12 +39,14 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='channel',
             name='user',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='weather_station_app.User'),
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE, to='sest.User'),
         ),
         migrations.AddField(
             model_name='record',
             name='channel',
-            field=models.ForeignKey(default=None, on_delete=django.db.models.deletion.CASCADE, to='weather_station_app.Channel'),
+            field=models.ForeignKey(
+                default=None, on_delete=django.db.models.deletion.CASCADE, to='sest.Channel'),
             preserve_default=False,
         ),
     ]
