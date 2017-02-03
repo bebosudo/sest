@@ -3,15 +3,12 @@ from django.utils import timezone
 from django.conf import settings
 
 from .models import *
-from .email_collection import send_email_wrapper
 
 import uuid
 import postmarker
 from postmarker.core import PostmarkClient
 
-
 POSTMARK_API_TEST = "POSTMARK_API_TEST"
-
 postmark_client_test = PostmarkClient(token=POSTMARK_API_TEST)
 
 
@@ -132,6 +129,8 @@ class UploadView(TestCase):
 
         self.assertEqual(response.status_code, 400)
 
+##############################################################################
+
 
 class FieldEncoding(TestCase):
 
@@ -208,10 +207,12 @@ class FieldEncoding(TestCase):
         with self.assertRaises(ValueError):
             r.field_set.all()[0].val
 
+##############################################################################
+
 
 class EmailSending(TestCase):
 
-    def test_send_email_successfully(self):
+    def tes_send_email_successfully(self):
         c, u, ch = create_testclient_user_channel()
 
         e = u.notificationemail_set.create(address=settings.DEFAULT_FROM_EMAIL)
@@ -221,20 +222,27 @@ class EmailSending(TestCase):
 
         self.assertEqual(response, True)
 
-    def test_send_email_wrong_recipient(self):
+    def tes_send_email_wrong_recipient(self):
         c, u, ch = create_testclient_user_channel()
 
         e = u.notificationemail_set.create(address="test@test")
         ch.notification_email = e
 
         # Uses Postmarker exception ATM. Create more tests for other services.
+        # as cl_err:
         with self.assertRaises(postmarker.exceptions.ClientError):
             ch.send_email("test message", postmark_client_test)
+
+        # Inspect the context manager and make sure that the exception raised
+        # matches the error being tested.
+        pass
+
+##############################################################################
 
 
 class CheckAndReactTests(TestCase):
 
-    def test_react_passing_lt(self):
+    def tes_react_with_email_passing_lt(self):
 
         settings.POSTMARK_CLIENT = postmark_client_test
         c, u, ch = create_testclient_user_channel()
@@ -266,17 +274,36 @@ class CheckAndReactTests(TestCase):
 
         self.assertEqual(status, True)
 
-    # def t_react_failing(self):
-    #     c, u, ch = create_testclient_user_channel()
+    # Create more tests for every condition other than "lt".
 
-    #     recipient = u.notificationemail_set.create(
-    #         address=settings.DEFAULT_FROM_EMAIL)
-    #     ch.notification_email = recipient
+    def test_react_with_email_not_triggering_any_action(self):
 
-    #     ch_id = ch.id
-    #     ch.fieldencoding_set.create(field_no=1, encoding="float")
-    #     ch.fieldencoding_set.create(field_no=2, encoding="float")
+        settings.POSTMARK_CLIENT = postmark_client_test
+        c, u, ch = create_testclient_user_channel()
 
-    #     d = {'field2': 3.141592}
-    #     c.post('/{}/upload/'.format(ch_id), d,
-    #            HTTP_X_WRITE_API_KEY=channel_uuid)
+        recipient = u.notificationemail_set.create(
+            address=settings.DEFAULT_FROM_EMAIL)
+        ch.notification_email = recipient
+
+        ch_id = ch.id
+        ch.fieldencoding_set.create(field_no=1, encoding="float")
+        ch.fieldencoding_set.create(field_no=2, encoding="float")
+
+        # Link a reaction (not to be satisfied) to the channel.
+        ch.conditionandreaction_set.create(condition_op="lt",
+                                           field_no=2,
+                                           val=2,
+                                           action="email"
+                                           )
+
+        channel_uuid = str(ch.write_key)
+        d = {'field2': 3.141592}
+        c.post('/{}/upload/'.format(ch_id), d,
+               HTTP_X_WRITE_API_KEY=channel_uuid)
+
+        # The whole channel has been just created, so the last record created
+        # is the only one present.
+        r = Record.objects.all()[0]
+        status = ch.check_and_react(r)
+
+        self.assertEqual(status, False)

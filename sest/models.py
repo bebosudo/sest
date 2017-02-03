@@ -72,7 +72,7 @@ class Channel(models.Model):
             client=client
         )
 
-        # 0 errors means all ok, so True.
+        # 0 errors means all ok, so return True.
         return response['ErrorCode'] == 0
 
     def check_and_react(self, record_to_check):
@@ -161,7 +161,6 @@ class ConditionAndReaction(models.Model):
     def val(self):
         if self.condition_op in ("lt", "le", "eq", "ne",
                                  "gt", "ge", "bt", "ot"):
-            # print(self._value)
             return float(self._value)
 
         # The others operations already store values as strings
@@ -181,8 +180,6 @@ class ConditionAndReaction(models.Model):
             return False
 
         if self.condition_op == "lt":
-            # print(type(field_obj.val))
-            # print(field_obj.val)
             return op.lt(field_obj.val, self.val)
         elif self.condition_op == "le":
             return op.le(field_obj.val, self.val)
@@ -224,6 +221,10 @@ class ConditionAndReaction(models.Model):
 
         if self.action == "email":
             return self.channel.send_email(message=sentence)
+        # TODO: The 'test' condition has not to be displayed to the user in the
+        # list of actions to connect to a reaction.
+        elif self.action == "test":
+            return True
 
         # So far there are no other actions allowed to be executed.
         raise ValueError("No other actions allowed.")
@@ -235,6 +236,12 @@ class Record(models.Model):
 
     def __str__(self):
         return self.insertion_time.strftime('%Y-%m-%d %H:%M:%S %Z')
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # Test whether the new record just saved triggers some reactions in the
+        # channel.
+        self.channel.check_and_react(self)
 
 
 class Field(models.Model):
