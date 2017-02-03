@@ -3,14 +3,30 @@ from django.utils import timezone
 from django.conf import settings
 
 from .models import *
+from .email_collection import send_email_wrapper
 
 import uuid
+import postmarker
 from postmarker.core import PostmarkClient
+
 
 POSTMARK_API_TEST = "POSTMARK_API_TEST"
 
 postmark_client_test = PostmarkClient(token=POSTMARK_API_TEST)
 
+
+def create_testclient_user_channel():
+    client = Client()
+    u = User.objects.create(nick="test",
+                            registration_time=timezone.now())
+    ch = Channel.objects.create(user=u,
+                                last_update=timezone.now(),
+                                number_fields=2
+                                )
+    return client, u, ch
+
+
+##############################################################################
 
 class UploadView(TestCase):
 
@@ -19,13 +35,9 @@ class UploadView(TestCase):
         test the correct upload of data to a channel, using the view `upload'.
         """
 
-        c = Client()
+        c, u, ch = create_testclient_user_channel()
+        channel_id = ch.id
 
-        channel_id = 1234
-
-        u = User.objects.create(nick="test", registration_time=timezone.now())
-        ch = Channel.objects.create(
-            user=u, id=channel_id, last_update=timezone.now(), number_fields=2)
         channel_uuid = str(ch.write_key)
 
         d = {'field2': 45}
@@ -41,13 +53,9 @@ class UploadView(TestCase):
         available.
         """
 
-        c = Client()
+        c, u, ch = create_testclient_user_channel()
+        channel_id = ch.id
 
-        channel_id = 1234
-
-        u = User.objects.create(nick="test", registration_time=timezone.now())
-        ch = Channel.objects.create(
-            user=u, id=channel_id, last_update=timezone.now(), number_fields=2)
         channel_uuid = str(ch.write_key)
 
         d = {'field{}'.format(i + 1): i +
@@ -62,13 +70,9 @@ class UploadView(TestCase):
         make sure that user has to publish at least one field.
         """
 
-        c = Client()
+        c, u, ch = create_testclient_user_channel()
+        channel_id = ch.id
 
-        channel_id = 1234
-
-        u = User.objects.create(nick="test", registration_time=timezone.now())
-        ch = Channel.objects.create(
-            user=u, id=channel_id, last_update=timezone.now(), number_fields=2)
         channel_uuid = str(ch.write_key)
 
         d = {}
@@ -83,13 +87,9 @@ class UploadView(TestCase):
         write API key provided is not the same as the one of the channel.
         """
 
-        c = Client()
+        c, u, ch = create_testclient_user_channel()
+        channel_id = ch.id
 
-        channel_id = 1234
-
-        u = User.objects.create(nick="test", registration_time=timezone.now())
-        Channel.objects.create(
-            user=u, id=channel_id, last_update=timezone.now(), number_fields=2)
         channel_uuid = uuid.uuid4()
 
         d = {'field2': 45}
@@ -104,14 +104,9 @@ class UploadView(TestCase):
         write API key is provided.
         """
 
-        c = Client()
+        c, u, ch = create_testclient_user_channel()
 
-        channel_id = 1234
-
-        u = User.objects.create(nick="test", registration_time=timezone.now())
-        Channel.objects.create(
-            user=u, id=channel_id, last_update=timezone.now(), number_fields=2)
-        # channel_uuid = uuid.uuid4()
+        channel_id = ch.id
 
         d = {'field2': 45}
         response = c.post('/{}/upload/'.format(channel_id), d)
@@ -125,31 +120,17 @@ class UploadView(TestCase):
         write API key is provided.
         """
 
-        c = Client()
+        c, u, ch = create_testclient_user_channel()
 
-        channel_id = 1234
-
-        u = User.objects.create(nick="test", registration_time=timezone.now())
-        Channel.objects.create(
-            user=u, id=channel_id, last_update=timezone.now(), number_fields=2)
-        # channel_uuid = uuid.uuid4()
+        channel_id = ch.id
+        channel_uuid = str(ch.write_key)
 
         d = {'field2': 45}
-        response = c.get('/{}/upload/'.format(channel_id), d)
-        # HTTP_X_WRITE_API_KEY=channel_uuid)
+        # response = c.post('/{}/upload/'.format(channel_id), d)
+        response = c.get('/{}/upload/'.format(channel_id), d,
+                         HTTP_X_WRITE_API_KEY=channel_uuid)
 
         self.assertEqual(response.status_code, 400)
-
-
-def create_testclient_user_channel():
-    client = Client()
-    u = User.objects.create(nick="test",
-                            registration_time=timezone.now())
-    ch = Channel.objects.create(user=u,
-                                last_update=timezone.now(),
-                                number_fields=2
-                                )
-    return client, u, ch
 
 
 class FieldEncoding(TestCase):
@@ -174,7 +155,7 @@ class FieldEncoding(TestCase):
         r = ch.record_set.all()[0]
         self.assertEqual(r.field_set.count(), len(d))
 
-        self.assertEqual(r.field_set.all()[0].real_value, d['field2'])
+        self.assertEqual(r.field_set.all()[0].val, d['field2'])
 
     def test_field_encoding_no_operation_defined(self):
         """Create a new record, but set a wrong encoding in the channel.
@@ -200,7 +181,7 @@ class FieldEncoding(TestCase):
         r = ch.record_set.all()[0]
 
         with self.assertRaises(ValueError):
-            r.field_set.all()[0].real_value
+            r.field_set.all()[0].val
 
     def test_field_encoding_wrong_value_saved(self):
         """Create a new record with a wrong value.
@@ -225,19 +206,77 @@ class FieldEncoding(TestCase):
         r = ch.record_set.all()[0]
 
         with self.assertRaises(ValueError):
-            r.field_set.all()[0].real_value
+            r.field_set.all()[0].val
 
 
 class EmailSending(TestCase):
 
-    def t_send_correct_email(self):
+    def test_send_email_successfully(self):
         c, u, ch = create_testclient_user_channel()
-        ch.notification_email = settings.DEFAULT_FROM_EMAIL
+
+        e = u.notificationemail_set.create(address=settings.DEFAULT_FROM_EMAIL)
+        ch.notification_email = e
+
+        response = ch.send_email("test message", postmark_client_test)
+
+        self.assertEqual(response, True)
+
+    def test_send_email_wrong_recipient(self):
+        c, u, ch = create_testclient_user_channel()
+
+        e = u.notificationemail_set.create(address="test@test")
+        ch.notification_email = e
+
+        # Uses Postmarker exception ATM. Create more tests for other services.
+        with self.assertRaises(postmarker.exceptions.ClientError):
+            ch.send_email("test message", postmark_client_test)
 
 
 class CheckAndReactTests(TestCase):
 
-    def t_react_failing(self):
+    def test_react_passing_lt(self):
+
+        settings.POSTMARK_CLIENT = postmark_client_test
         c, u, ch = create_testclient_user_channel()
-        ch.notification_email = settings.DEFAULT_FROM_EMAIL
-        pass
+
+        recipient = u.notificationemail_set.create(
+            address=settings.DEFAULT_FROM_EMAIL)
+        ch.notification_email = recipient
+
+        ch_id = ch.id
+        ch.fieldencoding_set.create(field_no=1, encoding="float")
+        ch.fieldencoding_set.create(field_no=2, encoding="float")
+
+        # Link a reaction (to be satisfied) to the channel.
+        ch.conditionandreaction_set.create(condition_op="lt",
+                                           field_no=2,
+                                           val=10,
+                                           action="email"
+                                           )
+
+        channel_uuid = str(ch.write_key)
+        d = {'field2': 3.141592}
+        c.post('/{}/upload/'.format(ch_id), d,
+               HTTP_X_WRITE_API_KEY=channel_uuid)
+
+        # The whole channel has been just created, so the last record created
+        # is the only one present.
+        r = Record.objects.all()[0]
+        status = ch.check_and_react(r)
+
+        self.assertEqual(status, True)
+
+    # def t_react_failing(self):
+    #     c, u, ch = create_testclient_user_channel()
+
+    #     recipient = u.notificationemail_set.create(
+    #         address=settings.DEFAULT_FROM_EMAIL)
+    #     ch.notification_email = recipient
+
+    #     ch_id = ch.id
+    #     ch.fieldencoding_set.create(field_no=1, encoding="float")
+    #     ch.fieldencoding_set.create(field_no=2, encoding="float")
+
+    #     d = {'field2': 3.141592}
+    #     c.post('/{}/upload/'.format(ch_id), d,
+    #            HTTP_X_WRITE_API_KEY=channel_uuid)

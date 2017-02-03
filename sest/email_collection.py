@@ -5,8 +5,8 @@ from django.conf import settings
 def send_email_wrapper(recipients_list, subject,
                        from_field=settings.DEFAULT_FROM_EMAIL,
                        text_body=None, html_body=None,
-                       postmark_client=settings.POSTMARK_CLIENT):
-    """Just a wrapper around different third-party services used to send email.
+                       client=None):
+    """Just a wrapper around different third-party services that send email.
 
     So far, I only pass the arguments from this function to another one, but
     I plan to introduce a smart system that takes into account the number of
@@ -21,13 +21,12 @@ def send_email_wrapper(recipients_list, subject,
         recipients_list = [recipients_list]
 
     return send_email_postmark(from_field, recipients_list, subject,
-                               text_body, html_body,
-                               postmark_client)
+                               text_body, html_body, client)
 
 
 def send_email_postmark(from_field, to_list, subject,
                         text_body=None, html_body=None,
-                        postmark_client=settings.POSTMARK_CLIENT):
+                        client=None):
     """Postmark[app.com] API client.
 
     In order to use the postmark service, visit their website, register a
@@ -36,11 +35,14 @@ def send_email_postmark(from_field, to_list, subject,
     object to be called from this function.
     """
 
+    if not client:
+        client = settings.POSTMARK_CLIENT
+
     # Maybe using send_batch in case of multiple recipients could be better?
     for recipient in to_list:
 
         # I use the postmark client object instantiated in the settings file.
-        return postmark_client.emails.send(
+        return client.emails.send(
             Subject=subject,
             # Text and Html bodies can be sent together into a multipart email.
             TextBody=text_body,

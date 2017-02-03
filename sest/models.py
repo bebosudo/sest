@@ -24,13 +24,17 @@ class NotificationEmail(models.Model):
     a user could choose to send notifications/alerts to different emails (and
     for example not to the one used to register to the service) for each
     channel he creates.
-    By design, only a single email can be used to communicate with
+    By design, only a single email can be set by the user for each channel.
     """
 
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    # This address should be validated, to make sure that the user really owns
-    # the email address he declares.
+    # TOD: This address should be validated, to make sure that the user really
+    # owns the email address he declares.
     address = models.EmailField(primary_key=True)
+
+    @property
+    def email(self):
+        return self.address
 
 
 class Channel(models.Model):
@@ -56,25 +60,39 @@ class Channel(models.Model):
     def get_encoding(self, field_no):
         return self.fieldencoding_set.get(field_no=field_no).encoding
 
-    def send_email(self, message):
+    def send_email(self, message="", client=None):
         if not self.notification_email:
             raise ValueError("No email connected to the "
                              "channel {}.".format(self))
 
-        send_email_wrapper(recipients_list=[self.notification_email],
-                           subject="Alert. Condition validated on channel "
-                           "{}".format(self),
-                           text_body=message)
+        response = send_email_wrapper(
+            recipients_list=[self.notification_email.email],
+            subject="Alert. Condition validated on channel {}".format(self),
+            text_body=message,
+            client=client
+        )
+
+        # 0 errors means all ok, so True.
+        return response['ErrorCode'] == 0
 
     def check_and_react(self, record_to_check):
+        """For every possible combination of conditions in the channel and
+        fields in the record, check whether at least one is satisfied and
+        then trigger the action in that channel.
+
+        TODO: do we want to let the user trigger multiple conditions, or
+        execute only the first one and then stop the checking? Actually the
+        first one prevents the others from being executed.
+        """
+
         for cond, f in product(self.conditionandreaction_set.all(),
                                record_to_check.field_set.all()):
+
             reaction = cond.check_condition(f)
             if reaction:
                 # If a condition is validated, trigger the relative action and
                 # then quit the execution.
-                cond.react(record_to_check)
-                return True
+                return cond.react(record_to_check)
 
         return False
 
@@ -128,16 +146,34 @@ class ConditionAndReaction(models.Model):
 
     channel = models.ForeignKey(Channel, on_delete=models.CASCADE)
     condition_op = models.CharField(max_length=2)
-    value = models.CharField(max_length=20)
+    _value = models.CharField(max_length=20)
 
     # The field (of the record) on which the condition reacts on.
     # TODO: connect this to the fields of the channel.
     field_no = models.PositiveSmallIntegerField()
     # The second value has to be filled (in the forms) only for `bt' or `ot'.
-    value_optional = models.CharField(max_length=20, null=True, blank=True)
+    _value_optional = models.CharField(max_length=20, null=True, blank=True)
 
     # Store the action the user choose to perform if the condition is met.
     action = models.CharField(max_length=10)
+
+    @property
+    def val(self):
+        if self.condition_op in ("lt", "le", "eq", "ne",
+                                 "gt", "ge", "bt", "ot"):
+            # print(self._value)
+            return float(self._value)
+
+        # The others operations already store values as strings
+        return self._value
+
+    @val.setter
+    def val(self, v):
+        self._value = v
+
+    @property
+    def val_optional(self):
+        return float(self._value_optional)
 
     def check_condition(self, field_obj):
 
@@ -145,32 +181,34 @@ class ConditionAndReaction(models.Model):
             return False
 
         if self.condition_op == "lt":
-            return op.lt(field_obj.value, self.value)
+            # print(type(field_obj.val))
+            # print(field_obj.val)
+            return op.lt(field_obj.val, self.val)
         elif self.condition_op == "le":
-            return op.le(field_obj.value, self.value)
+            return op.le(field_obj.val, self.val)
         elif self.condition_op == "eq":
-            return op.eq(field_obj.value, self.value)
+            return op.eq(field_obj.val, self.val)
         elif self.condition_op == "ne":
-            return op.ne(field_obj.value, self.value)
+            return op.ne(field_obj.val, self.val)
         elif self.condition_op == "gt":
-            return op.gt(field_obj.value, self.value)
+            return op.gt(field_obj.val, self.val)
         elif self.condition_op == "ge":
-            return op.ge(field_obj.value, self.value)
+            return op.ge(field_obj.val, self.val)
 
         elif self.condition_op == "bt":
-            return self.value < field_obj.value < self.value_optional
+            return self.val < field_obj.val < self.val_optional
         elif self.condition_op == "ot":
-            return not (self.value < field_obj.value < self.value_optional)
+            return not (self.val < field_obj.val < self.val_optional)
 
         # TODO: test correctness with str and bytes objects (py3).
         elif self.condition_op == "cn":
-            return self.value in field_obj.value
+            return self.val in field_obj.val
         elif self.condition_op == "nc":
-            return self.value not in field_obj.value
+            return self.val not in field_obj.val
         elif self.condition_op == "sw":
-            return field_obj.value.startswith(self.value)
+            return field_obj.val.startswith(self.val)
         elif self.condition_op == "ew":
-            return field_obj.value.endswith(self.value)
+            return field_obj.val.endswith(self.val)
         # We can rely on eq and ne in the arithmetic section also for strings.
 
         # In case no operation is defined for the given condition_op string:
@@ -185,7 +223,7 @@ class ConditionAndReaction(models.Model):
                     )
 
         if self.action == "email":
-            self.channel.send_email(message=sentence)
+            return self.channel.send_email(message=sentence)
 
         # So far there are no other actions allowed to be executed.
         raise ValueError("No other actions allowed.")
@@ -205,13 +243,13 @@ class Field(models.Model):
     # We save every field value as a string, and then we use a function defined
     # by the user inside each channel to restore the original meaning of the
     # value.
-    value = models.CharField(max_length=100)
+    _value = models.CharField(max_length=100)
 
     def __str__(self):
         return "{} - {}".format(self.record, self.value)
 
     @property
-    def real_value(self):
+    def val(self):
         encoding = self.record.channel.get_encoding(field_no=self.field_no)
 
         # This changes the default exception error to something more
@@ -221,9 +259,9 @@ class Field(models.Model):
         # and make sure that the values are checked also at the saving.
         try:
             if encoding == "float":
-                return float(self.value)
+                return float(self._value)
             elif encoding == "int":
-                return int(self.value)
+                return int(self._value)
         except ValueError:
             # If an incorrect value has been saved as a string into the DB:
             raise ValueError("Wrong encoding for the field no. {}, which is "
@@ -232,7 +270,7 @@ class Field(models.Model):
                                  self.field_no,
                                  self.record.channel,
                                  encoding,
-                                 self.value,
+                                 self._value,
                              )
                              )
         else:
@@ -244,6 +282,10 @@ class Field(models.Model):
                                  self.field_no,
                                  self.record.channel,
                                  encoding,
-                                 self.value,
+                                 self._value,
                              )
                              )
+
+    @val.setter
+    def val(self, v):
+        self._value = v
