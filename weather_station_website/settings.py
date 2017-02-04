@@ -12,9 +12,8 @@ https://docs.djangoproject.com/en/1.10/ref/settings/
 
 import os
 from .secret_things import SECRET_KEY, \
-    POSTMARK_CLIENT,\
+    # POSTMARK_CLIENT,\
     DEFAULT_FROM_EMAIL
-
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -29,6 +28,9 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DEBUG = True
 
 ALLOWED_HOSTS = ['testserver', '127.0.0.1']
+
+
+EMAIL_BACKEND = 'postmarker.django.EmailBackend'
 
 
 # Application definition

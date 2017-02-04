@@ -1,11 +1,11 @@
 from django.conf import settings
+from django.core.mail import send_mail
 # pip install postmarker
 
 
 def send_email_wrapper(recipients_list, subject,
                        from_field=settings.DEFAULT_FROM_EMAIL,
-                       text_body=None, html_body=None,
-                       client=None):
+                       text_body=None, html_body=None):
     """Just a wrapper around different third-party services that send email.
 
     So far, I only pass the arguments from this function to another one, but
@@ -21,12 +21,11 @@ def send_email_wrapper(recipients_list, subject,
         recipients_list = [recipients_list]
 
     return send_email_postmark(from_field, recipients_list, subject,
-                               text_body, html_body, client)
+                               text_body, html_body)
 
 
 def send_email_postmark(from_field, to_list, subject,
-                        text_body=None, html_body=None,
-                        client=None):
+                        text_body=None, html_body=None):
     """Postmark[app.com] API client.
 
     In order to use the postmark service, visit their website, register a
@@ -35,25 +34,17 @@ def send_email_postmark(from_field, to_list, subject,
     object to be called from this function.
     """
 
-    if not client:
-        client = settings.POSTMARK_CLIENT
+    # if not client:
+    #     client = settings.POSTMARK_CLIENT
 
-    exit_status = True
-    # Maybe using send_batch in case of multiple recipients could be better?
-    for recipient in to_list:
+    no_email_sent = send_mail(
+        subject,
+        # Text and Html bodies can be sent together into a multipart email.
+        text_body,
+        from_field,
+        to_list,
+        html_message=html_body,
+        fail_silently=True,
+    )
 
-        # I use the postmark client object instantiated in the settings file.
-        response = client.emails.send(
-            Subject=subject,
-            # Text and Html bodies can be sent together into a multipart email.
-            TextBody=text_body,
-            HtmlBody=html_body,
-            From=from_field,
-            To=recipient,
-        )
-
-        # An ErrorCode different from 0 means that there have been errors.
-        if response['ErrorCode'] != 0:
-            exit_status = False
-
-    return exit_status
+    return no_email_sent == len(to_list)

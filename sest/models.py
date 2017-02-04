@@ -60,7 +60,7 @@ class Channel(models.Model):
     def get_encoding(self, field_no):
         return self.fieldencoding_set.get(field_no=field_no).encoding
 
-    def send_email(self, message="", client=None):
+    def send_email(self, message=""):
         if not self.notification_email:
             raise ValueError("No email connected to the "
                              "channel {}.".format(self))
@@ -69,7 +69,6 @@ class Channel(models.Model):
             recipients_list=[self.notification_email.email],
             subject="Alert. Condition validated on channel {}".format(self),
             text_body=message,
-            client=client
         )
 
         return status

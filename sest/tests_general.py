@@ -7,9 +7,10 @@ from .models import *
 import uuid
 import postmarker
 from postmarker.core import PostmarkClient
+import smtplib
 
 POSTMARK_API_TEST = "POSTMARK_API_TEST"
-postmark_client_test = PostmarkClient(token=POSTMARK_API_TEST)
+# postmark_client_test = PostmarkClient(token=POSTMARK_API_TEST)
 
 
 class UploadView(TestCase):
@@ -180,6 +181,7 @@ class EmailSending(TestCase):
                                          number_fields=2
                                          )
         self.channel_uuid = str(self.ch.write_key)
+        # settings.POSTMARK['TEST_MODE'] = True
 
     def test_send_email_successfully(self):
 
@@ -187,83 +189,36 @@ class EmailSending(TestCase):
             address=settings.DEFAULT_FROM_EMAIL)
         self.ch.notification_email = e
 
-        response = self.ch.send_email("test message", postmark_client_test)
+        response = self.ch.send_email("test message")
 
         self.assertEqual(response, True)
 
-    def test_send_email_wrong_recipient(self):
+    def tes_send_email_wrong_recipient(self):
 
-        e = self.u.notificationemail_set.create(address="test@test")
+        e = self.u.notificationemail_set.create(address="")
         self.ch.notification_email = e
 
         # Uses Postmarker exception ATM. Create more tests for other services.
         # as cl_err:
-        with self.assertRaises(postmarker.exceptions.ClientError):
-            self.ch.send_email("test message", postmark_client_test)
+        with self.assertRaises(smtplib.SMTPRecipientsRefused) as e:
+            # with self.assertRaises(postmarker.exceptions.ClientError):
+            self.ch.send_email("test message")
 
         # TODO: Inspect the context manager and make sure that the exception
         # raised matches the error being tested.
 
-##############################################################################
+
+from django.core import mail
+from django.test import TestCase
 
 
-class CheckAndReactTests(TestCase):
+class EmailTest(TestCase):
+    def test_send_email(self):
+        mail.send_mail('Subject here', 'Here is the message.',
+                       'from@example.com', ['to@example.com'],
+                       fail_silently=False)
 
-    def setUp(self):
-        self.client = Client()
-        self.u = User.objects.create(nick="test",
-                                     registration_time=timezone.now())
-        self.ch = Channel.objects.create(user=self.u,
-                                         last_update=timezone.now(),
-                                         number_fields=2
-                                         )
-        self.ch.fieldencoding_set.create(field_no=1, encoding="float")
-        self.ch.fieldencoding_set.create(field_no=2, encoding="float")
-        self.d = {'field2': 3.141592}
-        self.channel_uuid = str(self.ch.write_key)
+        # print(settings.POSTMARK)
 
-        settings.POSTMARK_CLIENT = postmark_client_test
-
-        recipient = self.u.notificationemail_set.create(
-            address=settings.DEFAULT_FROM_EMAIL)
-        self.ch.notification_email = recipient
-
-    def test_react_with_email_passing_lt(self):
-
-        # Link a reaction (to be satisfied) to the channel.
-        self.ch.conditionandreaction_set.create(condition_op="lt",
-                                                field_no=2,
-                                                val=10,
-                                                action="email"
-                                                )
-
-        self.client.post('/{}/upload/'.format(self.ch.id), self.d,
-                         HTTP_X_WRITE_API_KEY=self.channel_uuid)
-
-        # The whole channel has been just created, so the last record created
-        # is the only one present.
-        r = Record.objects.all()[0]
-        status = self.ch.check_and_react(r)
-
-        self.assertEqual(status, True)
-
-    # Create more tests for every condition other than "lt".
-
-    def test_react_with_email_not_triggering_any_action(self):
-
-        # Link a reaction (not to be satisfied) to the channel.
-        self.ch.conditionandreaction_set.create(condition_op="lt",
-                                                field_no=2,
-                                                val=2,
-                                                action="email"
-                                                )
-
-        self.client.post('/{}/upload/'.format(self.ch.id), self.d,
-                         HTTP_X_WRITE_API_KEY=self.channel_uuid)
-
-        # The whole channel has been just created, so the last record created
-        # is the only one present.
-        r = Record.objects.all()[0]
-        status = self.ch.check_and_react(r)
-
-        self.assertEqual(status, False)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].subject, 'Subject here')

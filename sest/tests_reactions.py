@@ -4,6 +4,7 @@
 from django.test import TestCase, Client
 from django.utils import timezone
 from django.conf import settings
+from django.core import mail
 
 from .models import *
 
@@ -37,6 +38,48 @@ class Reactions(TestCase):
         recipient = self.u.notificationemail_set.create(
             address=settings.DEFAULT_FROM_EMAIL)
         self.ch.notification_email = recipient
+
+    def test_react_with_email_passing_lt(self):
+
+        # Link a reaction (to be satisfied) to the channel.
+        self.ch.conditionandreaction_set.create(condition_op="lt",
+                                                field_no=2,
+                                                val=10,
+                                                action="email"
+                                                )
+
+        self.client.post('/{}/upload/'.format(self.ch.id), self.d,
+                         HTTP_X_WRITE_API_KEY=self.channel_uuid)
+
+        # The whole channel has been just created, so the last record created
+        # is the only one present.
+        r = Record.objects.all()[0]
+        status = self.ch.check_and_react(r)
+
+        self.assertEqual(status, True)
+
+    ########################################
+    # Create more tests for every condition.
+    ########################################
+
+    def test_react_with_email_not_triggering_any_action(self):
+
+        # Link a reaction (not to be satisfied) to the channel.
+        self.ch.conditionandreaction_set.create(condition_op="lt",
+                                                field_no=2,
+                                                val=2,
+                                                action="email"
+                                                )
+
+        self.client.post('/{}/upload/'.format(self.ch.id), self.d,
+                         HTTP_X_WRITE_API_KEY=self.channel_uuid)
+
+        # The whole channel has been just created, so the last record created
+        # is the only one present.
+        r = Record.objects.all()[0]
+        status = self.ch.check_and_react(r)
+
+        self.assertEqual(status, False)
 
     def test_react_with_boolean_passing_lt(self):
 
@@ -113,3 +156,22 @@ class Reactions(TestCase):
         status = self.ch.check_and_react(r)
 
         self.assertEqual(status, True)
+
+    def test_react_with_email_passing_lt_on_save(self):
+
+        # Link a reaction (to be satisfied) to the channel.
+        self.ch.conditionandreaction_set.create(condition_op="lt",
+                                                field_no=2,
+                                                val=10,
+                                                action="test"
+                                                )
+
+        self.client.post('/{}/upload/'.format(self.ch.id), self.d,
+                         HTTP_X_WRITE_API_KEY=self.channel_uuid)
+
+        # The whole channel has been just created, so the last record created
+        # is the only one present.
+
+        print(len(mail.outbox))
+        self.assertEqual(len(mail.outbox), 1)
+        # self.assertEqual(mail.outbox[0].subject, 'Subject here')
