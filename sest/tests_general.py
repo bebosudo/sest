@@ -12,7 +12,6 @@ POSTMARK_API_TEST = "POSTMARK_API_TEST"
 postmark_client_test = PostmarkClient(token=POSTMARK_API_TEST)
 
 
-'''
 class UploadView(TestCase):
 
     def setUp(self):
@@ -268,5 +267,3 @@ class CheckAndReactTests(TestCase):
         status = self.ch.check_and_react(r)
 
         self.assertEqual(status, False)
-
-'''
