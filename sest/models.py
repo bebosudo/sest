@@ -106,6 +106,9 @@ class FieldEncoding(models.Model):
     field_no = models.PositiveSmallIntegerField()
     encoding = models.CharField(max_length=50)
 
+    def __str__(self):
+        return "FieldEncoding obj on field no. {}".format(self.field_no)
+
 
 class ConditionAndReaction(models.Model):
     """Associate some criteria to the channel, in order to trigger an action

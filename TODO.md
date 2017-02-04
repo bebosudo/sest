@@ -35,3 +35,6 @@ Do not change the order or insert new reqs in the middle of the list.
 Cornercase: if the user already certified their registration email, there's no need to ask to certificate it again.
 
 1. translations.
+
+15. Make sure that there are no more than one FieldEncoding object for each field_no (there should be something like a composite pk on the channel and the field_no).
+
