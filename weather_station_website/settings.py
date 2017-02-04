@@ -11,7 +11,7 @@ https://docs.djangoproject.com/en/1.10/ref/settings/
 """
 
 import os
-from .secret_things import SECRET_KEY, \
+from .secret_settings import SECRET_KEY, \
     # POSTMARK_CLIENT,\
     DEFAULT_FROM_EMAIL
 

@@ -38,4 +38,5 @@ Cornercase: if the user already certified their registration email, there's no n
 
 15. Make sure that there are no more than one FieldEncoding object for each field_no (there should be something like a composite pk on the channel and the field_no).
 
-1. update the secret_things_example.py file (and rename them secret_settings{,_example}.py)
+1. update the secret_things_example.py file ~~(and rename them secret_settings{,_example}.py)~~
+
