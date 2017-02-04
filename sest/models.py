@@ -65,7 +65,7 @@ class Channel(models.Model):
             raise ValueError("No email connected to the "
                              "channel {}.".format(self))
 
-        staus = send_email_wrapper(
+        status = send_email_wrapper(
             recipients_list=[self.notification_email.email],
             subject="Alert. Condition validated on channel {}".format(self),
             text_body=message,

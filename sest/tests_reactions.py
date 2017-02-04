@@ -7,7 +7,7 @@ from django.conf import settings
 
 from .models import *
 
-import uuid
+# import uuid
 # import postmarker
 from postmarker.core import PostmarkClient
 

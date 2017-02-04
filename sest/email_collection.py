@@ -52,7 +52,7 @@ def send_email_postmark(from_field, to_list, subject,
             To=recipient,
         )
 
-        # 0 errors means all ok, so return True.
+        # An ErrorCode different from 0 means that there have been errors.
         if response['ErrorCode'] != 0:
             exit_status = False
 
