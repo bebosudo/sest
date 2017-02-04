@@ -65,15 +65,14 @@ class Channel(models.Model):
             raise ValueError("No email connected to the "
                              "channel {}.".format(self))
 
-        response = send_email_wrapper(
+        staus = send_email_wrapper(
             recipients_list=[self.notification_email.email],
             subject="Alert. Condition validated on channel {}".format(self),
             text_body=message,
             client=client
         )
 
-        # 0 errors means all ok, so return True.
-        return response['ErrorCode'] == 0
+        return status
 
     def check_and_react(self, record_to_check):
         """For every possible combination of conditions in the channel and
@@ -244,7 +243,7 @@ class Record(models.Model):
         super().save(*args, **kwargs)
         # Test whether the new record just saved triggers some reactions in the
         # channel.
-        self.channel.check_and_react(self)
+        return self.channel.check_and_react(self)
 
 
 class Field(models.Model):

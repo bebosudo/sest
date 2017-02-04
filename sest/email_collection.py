@@ -38,11 +38,12 @@ def send_email_postmark(from_field, to_list, subject,
     if not client:
         client = settings.POSTMARK_CLIENT
 
+    exit_status = True
     # Maybe using send_batch in case of multiple recipients could be better?
     for recipient in to_list:
 
         # I use the postmark client object instantiated in the settings file.
-        return client.emails.send(
+        response = client.emails.send(
             Subject=subject,
             # Text and Html bodies can be sent together into a multipart email.
             TextBody=text_body,
@@ -50,3 +51,9 @@ def send_email_postmark(from_field, to_list, subject,
             From=from_field,
             To=recipient,
         )
+
+        # 0 errors means all ok, so return True.
+        if response['ErrorCode'] != 0:
+            exit_status = False
+
+    return exit_status
