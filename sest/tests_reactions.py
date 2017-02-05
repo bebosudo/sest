@@ -22,9 +22,12 @@ class Reactions(TestCase):
         self.client = Client()
         self.u = User.objects.create(nick="test",
                                      registration_time=timezone.now())
+        ne = NotificationEmail.objects.create(user=self.u,
+                                              address="whatever@test.it")
         self.ch = Channel.objects.create(user=self.u,
                                          last_update=timezone.now(),
-                                         number_fields=2
+                                         number_fields=2,
+                                         notification_email=ne
                                          )
 
         self.ch.fieldencoding_set.create(field_no=1, encoding="float")
@@ -168,9 +171,6 @@ class Reactions(TestCase):
 
         self.client.post('/{}/upload/'.format(self.ch.id), self.d,
                          HTTP_X_WRITE_API_KEY=self.channel_uuid)
-
-        # The whole channel has been just created, so the last record created
-        # is the only one present.
 
         print(len(mail.outbox))
         self.assertEqual(len(mail.outbox), 1)

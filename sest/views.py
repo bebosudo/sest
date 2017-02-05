@@ -97,6 +97,7 @@ def upload(request, channel_id):
 
             r.field_set.create(field_no=field_no, val=val)
 
+        channel.check_and_react(r)
         return HttpResponse()
 
     else:
