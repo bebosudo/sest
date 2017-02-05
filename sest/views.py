@@ -10,7 +10,7 @@ import re
 
 field_pattern = re.compile(r"(field[0-9]+)")
 field_extract_number = re.compile(r"field([0-9]+)")
-HTTP_WRITE_KEY = "X_Write_API_Key"
+HTTP_WRITE_KEY = "X_SEST_Write_Key"
 TEMPERATURE_THRESHOLD = 35
 HUMIDITY_THRESHOLD = 90
 
@@ -65,8 +65,8 @@ def upload(request, channel_id):
     channel = get_object_or_404(Channel, pk=channel_id)
 
     if str(channel.write_key) != write_API_key:
-        return HttpResponseBadRequest("Incorrect API key associated with the "
-                                      "channel you have chosen.")
+        return HttpResponseBadRequest("Incorrect SEST write key associated "
+                                      "with the channel you have chosen.")
 
     # Collect the fields value from the body of the http POST message into a
     # dictionary. Use a regex to select only the fields like 'field<number>'.
@@ -97,6 +97,7 @@ def upload(request, channel_id):
 
             r.field_set.create(field_no=field_no, val=val)
 
+        # TODO: substitute this with sth smarter, like overriding Record.save()
         channel.check_and_react(r)
         return HttpResponse()
 

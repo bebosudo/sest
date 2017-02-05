@@ -10,10 +10,10 @@ from .models import *
 
 # import uuid
 # import postmarker
-from postmarker.core import PostmarkClient
+# from postmarker.core import PostmarkClient
 
-POSTMARK_API_TEST = "POSTMARK_API_TEST"
-postmark_client_test = PostmarkClient(token=POSTMARK_API_TEST)
+# POSTMARK_API_TEST = "POSTMARK_API_TEST"
+# postmark_client_test = PostmarkClient(token=POSTMARK_API_TEST)
 
 
 class Reactions(TestCase):
@@ -36,7 +36,7 @@ class Reactions(TestCase):
         self.channel_uuid = str(self.ch.write_key)
         self.d = {'field2': 3.141592}
 
-        settings.POSTMARK_CLIENT = postmark_client_test
+        # settings.POSTMARK_CLIENT = postmark_client_test
 
         recipient = self.u.notificationemail_set.create(
             address=settings.DEFAULT_FROM_EMAIL)
@@ -52,7 +52,7 @@ class Reactions(TestCase):
                                                 )
 
         self.client.post('/{}/upload/'.format(self.ch.id), self.d,
-                         HTTP_X_WRITE_API_KEY=self.channel_uuid)
+                         HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
 
         # The whole channel has been just created, so the last record created
         # is the only one present.
@@ -75,7 +75,7 @@ class Reactions(TestCase):
                                                 )
 
         self.client.post('/{}/upload/'.format(self.ch.id), self.d,
-                         HTTP_X_WRITE_API_KEY=self.channel_uuid)
+                         HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
 
         # The whole channel has been just created, so the last record created
         # is the only one present.
@@ -94,7 +94,7 @@ class Reactions(TestCase):
                                                 )
 
         self.client.post('/{}/upload/'.format(self.ch.id), self.d,
-                         HTTP_X_WRITE_API_KEY=self.channel_uuid)
+                         HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
 
         # The whole channel has been just created, so the last record created
         # is the only one present.
@@ -113,7 +113,7 @@ class Reactions(TestCase):
                                                 )
 
         self.client.post('/{}/upload/'.format(self.ch.id), self.d,
-                         HTTP_X_WRITE_API_KEY=self.channel_uuid)
+                         HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
 
         # The whole channel has been just created, so the last record created
         # is the only one present.
@@ -132,7 +132,7 @@ class Reactions(TestCase):
                                                 )
 
         self.client.post('/{}/upload/'.format(self.ch.id), self.d,
-                         HTTP_X_WRITE_API_KEY=self.channel_uuid)
+                         HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
 
         # The whole channel has been just created, so the last record created
         # is the only one present.
@@ -151,7 +151,7 @@ class Reactions(TestCase):
                                                 )
 
         self.client.post('/{}/upload/'.format(self.ch.id), self.d,
-                         HTTP_X_WRITE_API_KEY=self.channel_uuid)
+                         HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
 
         # The whole channel has been just created, so the last record created
         # is the only one present.
@@ -170,7 +170,7 @@ class Reactions(TestCase):
                                                 )
 
         self.client.post('/{}/upload/'.format(self.ch.id), self.d,
-                         HTTP_X_WRITE_API_KEY=self.channel_uuid)
+                         HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
 
         print(len(mail.outbox))
         self.assertEqual(len(mail.outbox), 1)

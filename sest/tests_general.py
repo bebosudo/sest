@@ -32,7 +32,7 @@ class UploadView(TestCase):
         """
 
         response = self.client.post('/{}/upload/'.format(self.ch.id), self.d,
-                                    HTTP_X_WRITE_API_KEY=self.channel_uuid)
+                                    HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
 
         self.assertEqual(self.ch.record_set.all()[
                          0].field_set.count(), len(self.d))
@@ -47,7 +47,7 @@ class UploadView(TestCase):
         self.d = {'field{}'.format(i + 1): i +
                   1 for i in range(Channel.MAX_NUMBER_FIELDS + 2)}
         response = self.client.post('/{}/upload/'.format(self.ch.id), self.d,
-                                    HTTP_X_WRITE_API_KEY=self.channel_uuid)
+                                    HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
 
         self.assertEqual(response.status_code, 406)
 
@@ -58,7 +58,7 @@ class UploadView(TestCase):
 
         self.d = {}
         response = self.client.post('/{}/upload/'.format(self.ch.id), self.d,
-                                    HTTP_X_WRITE_API_KEY=self.channel_uuid)
+                                    HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
 
         self.assertEqual(response.status_code, 406)
 
@@ -71,7 +71,7 @@ class UploadView(TestCase):
         self.channel_uuid = uuid.uuid4()
 
         response = self.client.post('/{}/upload/'.format(self.ch.id), self.d,
-                                    HTTP_X_WRITE_API_KEY=self.channel_uuid)
+                                    HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
 
         self.assertEqual(response.status_code, 400)
 
@@ -82,7 +82,7 @@ class UploadView(TestCase):
         """
 
         response = self.client.post('/{}/upload/'.format(self.ch.id), self.d)
-        #                             HTTP_X_WRITE_API_KEY=self.channel_uuid)
+        #                             HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
 
         self.assertEqual(response.status_code, 400)
 
@@ -94,7 +94,7 @@ class UploadView(TestCase):
 
         # response = self.client.post('/{}/upload/'.format(self.ch.id), d)
         response = self.client.get('/{}/upload/'.format(self.ch.id), self.d,
-                                   HTTP_X_WRITE_API_KEY=self.channel_uuid)
+                                   HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
 
         self.assertEqual(response.status_code, 400)
 
@@ -121,7 +121,7 @@ class FieldEncoding(TestCase):
         """
 
         self.client.post('/{}/upload/'.format(self.ch.id), self.d,
-                         HTTP_X_WRITE_API_KEY=self.channel_uuid)
+                         HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
 
         # r contains the record object just created.
         r = self.ch.record_set.all()[0]
@@ -142,7 +142,7 @@ class FieldEncoding(TestCase):
         fe.save()
 
         self.client.post('/{}/upload/'.format(self.ch.id), self.d,
-                         HTTP_X_WRITE_API_KEY=self.channel_uuid)
+                         HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
 
         # r contains the record object just created.
         r = self.ch.record_set.all()[0]
@@ -159,7 +159,7 @@ class FieldEncoding(TestCase):
 
         self.d = {'field2': 'asdf'}
         self.client.post('/{}/upload/'.format(self.ch.id), self.d,
-                         HTTP_X_WRITE_API_KEY=self.channel_uuid)
+                         HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
 
         # r contains the record object just created.
         r = self.ch.record_set.all()[0]
