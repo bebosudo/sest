@@ -15,7 +15,7 @@ c = Channel.objects.create(user=u, number_fields=2)
 c.fieldencoding_set.create(field_no=1, encoding='float')
 c.fieldencoding_set.create(field_no=2, encoding='float')
 
-with open("sample_thingspeak_no_header.csv") as fo:
+with open("sample_without_header.csv") as fo:
     for line in fo:
         line = line.strip().split(',')
         dt, _id, t, h = line
