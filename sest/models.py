@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth.models import User
 
 from .email_collection import send_email_wrapper
 
@@ -11,7 +12,7 @@ from itertools import product
 class User(models.Model):
     nick = models.CharField(max_length=50, primary_key=True)
     email = models.EmailField()
-    registration_time = models.DateField()
+    registration_time = models.DateField(auto_now_add=True)
 
     def __str__(self):
         return self.nick
@@ -43,7 +44,7 @@ class Channel(models.Model):
     # An autoincrement field called `id' is automatically provided by django.
     title = models.CharField(max_length=200, blank=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    last_update = models.DateTimeField(blank=True)
+    last_update = models.DateTimeField(auto_now=True, blank=True)
     description = models.TextField(max_length=500, blank=True)
     # TODO: create a method that allows the user to regenerate another uuid.
     write_key = models.UUIDField(default=uuid.uuid4, editable=False)
@@ -65,13 +66,11 @@ class Channel(models.Model):
             raise ValueError("No email connected to the "
                              "channel {}.".format(self))
 
-        status = send_email_wrapper(
+        send_email_wrapper(
             recipients_list=[self.notification_email.email],
             subject="Alert. Condition validated on channel {}".format(self),
             text_body=message,
         )
-
-        return status
 
     def check_and_react(self, record_to_check):
         """For every possible combination of conditions in the channel and
@@ -172,8 +171,12 @@ class ConditionAndReaction(models.Model):
         self._value = v
 
     @property
-    def val_optional(self):
+    def val_opt(self):
         return float(self._value_optional)
+
+    @val_opt.setter
+    def val_opt(self, v):
+        self._value_optional = v
 
     def check_condition(self, field_obj):
 
@@ -194,9 +197,9 @@ class ConditionAndReaction(models.Model):
             return op.ge(field_obj.val, self.val)
 
         elif self.condition_op == "bt":
-            return self.val < field_obj.val < self.val_optional
+            return self.val < field_obj.val < self.val_opt
         elif self.condition_op == "ot":
-            return not (self.val < field_obj.val < self.val_optional)
+            return not (self.val < field_obj.val < self.val_opt)
 
         # TODO: test correctness with str and bytes objects (py3).
         elif self.condition_op == "cn":
@@ -222,10 +225,6 @@ class ConditionAndReaction(models.Model):
 
         if self.action == "email":
             return self.channel.send_email(message=sentence)
-        # TODO: The 'test' condition has not to be displayed to the user in the
-        # list of actions to connect to a reaction.
-        elif self.action == "test":
-            return True
 
         # So far there are no other actions allowed to be executed.
         raise ValueError("No other actions allowed.")
@@ -233,20 +232,26 @@ class ConditionAndReaction(models.Model):
 
 class Record(models.Model):
     channel = models.ForeignKey(Channel, on_delete=models.CASCADE)
-    insertion_time = models.DateTimeField('registration date and time')
+    insertion_time = models.DateTimeField('registration date and time',
+                                          auto_now_add=True)
+    # In order to save also the time the object has been created, create
+    # another DateTimeField with auto_now=True.
 
     def __str__(self):
         return self.insertion_time.strftime('%Y-%m-%d %H:%M:%S %Z')
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
-        # Test whether the new record just saved triggers some reactions in the
-        # channel.
-        return self.channel.check_and_react(self)
+        if self.field_set.count() > 0:
+            # Test whether the new record just saved triggers some reactions in
+            # the channel.
+            self.channel.check_and_react(self)
 
 
 class Field(models.Model):
-    record = models.ForeignKey(Record, on_delete=models.CASCADE)
+    record = models.ForeignKey(Record,
+                               # related_name='fields',
+                               on_delete=models.CASCADE)
     field_no = models.PositiveSmallIntegerField()
     # We save every field value as a string, and then we use a function defined
     # by the user inside each channel to restore the original meaning of the
@@ -254,7 +259,7 @@ class Field(models.Model):
     _value = models.CharField(max_length=100)
 
     def __str__(self):
-        return "{} - {}".format(self.record, self.value)
+        return "{} - {}".format(self.record, self.val)
 
     @property
     def val(self):
@@ -270,6 +275,8 @@ class Field(models.Model):
                 return float(self._value)
             elif encoding == "int":
                 return int(self._value)
+            elif encoding == "string":
+                return self._value
         except ValueError:
             # If an incorrect value has been saved as a string into the DB:
             raise ValueError("Wrong encoding for the field no. {}, which is "

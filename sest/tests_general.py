@@ -1,12 +1,13 @@
 from django.test import TestCase, Client
 from django.utils import timezone
 from django.conf import settings
+from django.core import mail
 
 from .models import *
 
 import uuid
-import postmarker
-from postmarker.core import PostmarkClient
+# import postmarker
+# from postmarker.core import PostmarkClient
 import smtplib
 
 POSTMARK_API_TEST = "POSTMARK_API_TEST"
@@ -105,10 +106,10 @@ class FieldEncoding(TestCase):
 
     def setUp(self):
         self.client = Client()
-        self.u = User.objects.create(nick="test",
-                                     registration_time=timezone.now())
+        self.u = User.objects.create(nick="test")
+                                     # registration_time=timezone.now())
         self.ch = Channel.objects.create(user=self.u,
-                                         last_update=timezone.now(),
+                                         # last_update=timezone.now(),
                                          number_fields=2
                                          )
         self.channel_uuid = str(self.ch.write_key)
@@ -181,7 +182,6 @@ class EmailSending(TestCase):
                                          number_fields=2
                                          )
         self.channel_uuid = str(self.ch.write_key)
-        # settings.POSTMARK['TEST_MODE'] = True
 
     def test_send_email_successfully(self):
 
@@ -189,36 +189,22 @@ class EmailSending(TestCase):
             address=settings.DEFAULT_FROM_EMAIL)
         self.ch.notification_email = e
 
-        response = self.ch.send_email("test message")
+        self.ch.send_email("test message")
 
-        self.assertEqual(response, True)
+        self.assertEqual(len(mail.outbox), 1)
 
-    def tes_send_email_wrong_recipient(self):
+    def test_send_email_wrong_recipient(self):
 
         e = self.u.notificationemail_set.create(address="")
         self.ch.notification_email = e
 
         # Uses Postmarker exception ATM. Create more tests for other services.
         # as cl_err:
-        with self.assertRaises(smtplib.SMTPRecipientsRefused) as e:
-            # with self.assertRaises(postmarker.exceptions.ClientError):
-            self.ch.send_email("test message")
+        # with self.assertRaises(smtplib.SMTPRecipientsRefused) as e:
+        # with self.assertRaises(postmarker.exceptions.ClientError):
+        self.ch.send_email("test message")
+
+        self.assertEqual(len(mail.outbox), 0)
 
         # TODO: Inspect the context manager and make sure that the exception
         # raised matches the error being tested.
-
-
-from django.core import mail
-from django.test import TestCase
-
-
-class EmailTest(TestCase):
-    def test_send_email(self):
-        mail.send_mail('Subject here', 'Here is the message.',
-                       'from@example.com', ['to@example.com'],
-                       fail_silently=False)
-
-        # print(settings.POSTMARK)
-
-        self.assertEqual(len(mail.outbox), 1)
-        self.assertEqual(mail.outbox[0].subject, 'Subject here')

@@ -1,6 +1,5 @@
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.shortcuts import get_object_or_404
-from django.utils import timezone
 from django.views import generic
 
 # from .models import Channel, User, Record, Field
@@ -77,8 +76,8 @@ def upload(request, channel_id):
         return HttpResponse("Max number of fields exceeded.", status=406)
 
     elif any(fields):
-        r = Record.objects.create(channel=channel,
-                                  insertion_time=timezone.now())
+        # The object has to be created before attaching fields objects to it.
+        r = Record.objects.create(channel=channel)
 
         # Create new Field objects to link to the newly created record.
         for field_name, val in fields.items():
@@ -88,40 +87,21 @@ def upload(request, channel_id):
                 continue
 
             # Extract the field number and pass it to create the field element.
-            # This allows to keep track of the "position" of the field passed
-            # in the upload request.
             # We can select just the first occurrence since we already
             # previously parsed the fields with another regex.
+            # This allows to keep track of the "position" of the field passed
+            # in the upload request.
+            # extract number from: `field(123)'
             field_no = field_extract_number.findall(field_name)[0]
             field_no = int(field_no)
 
             r.field_set.create(field_no=field_no, val=val)
 
-        # TODO: substitute this with sth smarter, like overriding Record.save()
-        channel.check_and_react(r)
+        # Save the object again with the new fields added, in order to possibly
+        # trigger an action.
+        r.save()
         return HttpResponse()
 
     else:
         return HttpResponse("Send at least one field inside your message.",
                             status=406)
-
-
-def condition_field1(field):
-    # check whether temperature is greater than..
-    return field.value > TEMPERATURE_THRESHOLD
-
-
-def condition_field2(field):
-    # check whether humidity is greater than..
-    return field.value > HUMIDITY_THRESHOLD
-
-
-def check_conditions(record):
-    """Given a certain record, with several fields, check whether they don't
-    satisfy anymore the conditions.
-    """
-
-    status = False
-    for f in record.field_set.all():
-        if f.field_no == 1 and status:
-            check_field1(f)

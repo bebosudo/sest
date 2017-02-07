@@ -42,32 +42,13 @@ class Reactions(TestCase):
             address=settings.DEFAULT_FROM_EMAIL)
         self.ch.notification_email = recipient
 
-    def test_react_with_email_passing_lt(self):
-
-        # Link a reaction (to be satisfied) to the channel.
-        self.ch.conditionandreaction_set.create(condition_op="lt",
-                                                field_no=2,
-                                                val=10,
-                                                action="email"
-                                                )
-
-        self.client.post('/{}/upload/'.format(self.ch.id), self.d,
-                         HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
-
-        # The whole channel has been just created, so the last record created
-        # is the only one present.
-        r = Record.objects.all()[0]
-        status = self.ch.check_and_react(r)
-
-        self.assertEqual(status, True)
-
     ########################################
     # Create more tests for every condition.
     ########################################
 
     def test_react_with_email_not_triggering_any_action(self):
 
-        # Link a reaction (not to be satisfied) to the channel.
+        # Link a reaction (NOT to be satisfied) to the channel.
         self.ch.conditionandreaction_set.create(condition_op="lt",
                                                 field_no=2,
                                                 val=2,
@@ -77,88 +58,7 @@ class Reactions(TestCase):
         self.client.post('/{}/upload/'.format(self.ch.id), self.d,
                          HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
 
-        # The whole channel has been just created, so the last record created
-        # is the only one present.
-        r = Record.objects.all()[0]
-        status = self.ch.check_and_react(r)
-
-        self.assertEqual(status, False)
-
-    def test_react_with_boolean_passing_lt(self):
-
-        # Link a reaction (to be satisfied) to the channel.
-        self.ch.conditionandreaction_set.create(condition_op="lt",
-                                                field_no=2,
-                                                val=10,
-                                                action="test"
-                                                )
-
-        self.client.post('/{}/upload/'.format(self.ch.id), self.d,
-                         HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
-
-        # The whole channel has been just created, so the last record created
-        # is the only one present.
-        r = Record.objects.all()[0]
-        status = self.ch.check_and_react(r)
-
-        self.assertEqual(status, True)
-
-    def test_react_with_boolean_passing_le_equal(self):
-
-        # Link a reaction (to be satisfied) to the channel.
-        self.ch.conditionandreaction_set.create(condition_op="le",
-                                                field_no=2,
-                                                val=3.141592,
-                                                action="test"
-                                                )
-
-        self.client.post('/{}/upload/'.format(self.ch.id), self.d,
-                         HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
-
-        # The whole channel has been just created, so the last record created
-        # is the only one present.
-        r = Record.objects.all()[0]
-        status = self.ch.check_and_react(r)
-
-        self.assertEqual(status, True)
-
-    def test_react_with_boolean_passing_le(self):
-
-        # Link a reaction (to be satisfied) to the channel.
-        self.ch.conditionandreaction_set.create(condition_op="le",
-                                                field_no=2,
-                                                val=10,
-                                                action="test"
-                                                )
-
-        self.client.post('/{}/upload/'.format(self.ch.id), self.d,
-                         HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
-
-        # The whole channel has been just created, so the last record created
-        # is the only one present.
-        r = Record.objects.all()[0]
-        status = self.ch.check_and_react(r)
-
-        self.assertEqual(status, True)
-
-    def test_react_with_boolean_passing_eq(self):
-
-        # Link a reaction (to be satisfied) to the channel.
-        self.ch.conditionandreaction_set.create(condition_op="eq",
-                                                field_no=2,
-                                                val=3.141592,
-                                                action="test"
-                                                )
-
-        self.client.post('/{}/upload/'.format(self.ch.id), self.d,
-                         HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
-
-        # The whole channel has been just created, so the last record created
-        # is the only one present.
-        r = Record.objects.all()[0]
-        status = self.ch.check_and_react(r)
-
-        self.assertEqual(status, True)
+        self.assertEqual(len(mail.outbox), 0)
 
     def test_react_with_email_passing_lt_on_save(self):
 
@@ -166,12 +66,44 @@ class Reactions(TestCase):
         self.ch.conditionandreaction_set.create(condition_op="lt",
                                                 field_no=2,
                                                 val=10,
-                                                action="test"
+                                                action="email"
                                                 )
 
         self.client.post('/{}/upload/'.format(self.ch.id), self.d,
                          HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
 
-        print(len(mail.outbox))
         self.assertEqual(len(mail.outbox), 1)
-        # self.assertEqual(mail.outbox[0].subject, 'Subject here')
+
+    def test_react_with_email_passing_bt_on_save(self):
+
+        # Link a reaction (to be satisfied) to the channel.
+        self.ch.conditionandreaction_set.create(condition_op="bt",
+                                                field_no=2,
+                                                val=0,
+                                                val_opt=10,
+                                                action="email"
+                                                )
+
+        self.client.post('/{}/upload/'.format(self.ch.id), self.d,
+                         HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
+
+        self.assertEqual(len(mail.outbox), 1)
+
+    def test_react_with_email_passing_sw_on_save(self):
+        fe = self.ch.fieldencoding_set.get(field_no=2)
+        fe.encoding = "string"
+        fe.save()
+
+        s = "test"
+        # Link a reaction (to be satisfied) to the channel.
+        self.ch.conditionandreaction_set.create(condition_op="sw",
+                                                field_no=2,
+                                                val=s,
+                                                action="email"
+                                                )
+
+        self.d = {"field2": s + " and sth else.. etc etc"}
+        self.client.post('/{}/upload/'.format(self.ch.id), self.d,
+                         HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
+
+        self.assertEqual(len(mail.outbox), 1)

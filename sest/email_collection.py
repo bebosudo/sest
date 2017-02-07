@@ -20,8 +20,8 @@ def send_email_wrapper(recipients_list, subject,
     if isinstance(recipients_list, str):
         recipients_list = [recipients_list]
 
-    return send_email_postmark(from_field, recipients_list, subject,
-                               text_body, html_body)
+    send_email_postmark(from_field, recipients_list, subject,
+                        text_body, html_body)
 
 
 def send_email_postmark(from_field, to_list, subject,
@@ -34,10 +34,11 @@ def send_email_postmark(from_field, to_list, subject,
     object to be called from this function.
     """
 
-    # if not client:
-    #     client = settings.POSTMARK_CLIENT
+    # TODO: set fail_silently=False, and capture the exceptions that could
+    # raise.
 
-    no_email_sent = send_mail(
+    # no_email_sent = send_mail(
+    send_mail(
         subject,
         # Text and Html bodies can be sent together into a multipart email.
         text_body,
@@ -47,4 +48,4 @@ def send_email_postmark(from_field, to_list, subject,
         fail_silently=True,
     )
 
-    return no_email_sent == len(to_list)
+    # return no_email_sent == len(to_list)
