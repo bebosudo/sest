@@ -8,7 +8,7 @@ from .models import *
 import uuid
 # import postmarker
 # from postmarker.core import PostmarkClient
-import smtplib
+# import smtplib
 
 POSTMARK_API_TEST = "POSTMARK_API_TEST"
 # postmark_client_test = PostmarkClient(token=POSTMARK_API_TEST)
@@ -18,10 +18,8 @@ class UploadView(TestCase):
 
     def setUp(self):
         self.client = Client()
-        self.u = User.objects.create(nick="test",
-                                     registration_time=timezone.now())
+        self.u = User.objects.create(username="test")
         self.ch = Channel.objects.create(user=self.u,
-                                         last_update=timezone.now(),
                                          number_fields=2
                                          )
         self.channel_uuid = str(self.ch.write_key)
@@ -106,10 +104,8 @@ class FieldEncoding(TestCase):
 
     def setUp(self):
         self.client = Client()
-        self.u = User.objects.create(nick="test")
-                                     # registration_time=timezone.now())
+        self.u = User.objects.create(username="test")
         self.ch = Channel.objects.create(user=self.u,
-                                         # last_update=timezone.now(),
                                          number_fields=2
                                          )
         self.channel_uuid = str(self.ch.write_key)
@@ -175,10 +171,8 @@ class EmailSending(TestCase):
 
     def setUp(self):
         self.client = Client()
-        self.u = User.objects.create(nick="test",
-                                     registration_time=timezone.now())
+        self.u = User.objects.create(username="test")
         self.ch = Channel.objects.create(user=self.u,
-                                         last_update=timezone.now(),
                                          number_fields=2
                                          )
         self.channel_uuid = str(self.ch.write_key)

@@ -20,12 +20,10 @@ class Reactions(TestCase):
 
     def setUp(self):
         self.client = Client()
-        self.u = User.objects.create(nick="test",
-                                     registration_time=timezone.now())
+        self.u = User.objects.create(username="test")
         ne = NotificationEmail.objects.create(user=self.u,
                                               address="whatever@test.it")
         self.ch = Channel.objects.create(user=self.u,
-                                         last_update=timezone.now(),
                                          number_fields=2,
                                          notification_email=ne
                                          )

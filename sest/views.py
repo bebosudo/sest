@@ -29,7 +29,9 @@ class ChannelView(generic.ListView):
     n_elements_display = 10
 
     def get_queryset(self):
-        return Record.objects.order_by('-insertion_time')[:self.n_elements_display]
+        r = Record.objects.order_by(
+            '-insertion_time')[:self.n_elements_display]
+        return r
 
 
 def upload(request, channel_id):

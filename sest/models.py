@@ -3,19 +3,13 @@ from django.contrib.auth.models import User
 
 from .email_collection import send_email_wrapper
 
-# from datetime import datetime
 import uuid
 import operator as op
 from itertools import product
 
-
-class User(models.Model):
-    nick = models.CharField(max_length=50, primary_key=True)
-    email = models.EmailField()
-    registration_time = models.DateField(auto_now_add=True)
-
-    def __str__(self):
-        return self.nick
+# The User model has been replaced by the one provided by
+# django.contrib.auth.models, which integrates many useful user-managing
+# features.
 
 
 class NotificationEmail(models.Model):
