@@ -103,7 +103,6 @@ def upload(request, channel_id):
             # extract number from: `field(123)'
             field_no = field_extract_number.findall(field_name)[0]
             field_no = int(field_no)
-            field_no = int(field_no)
 
             r.field_set.create(field_no=field_no, val=val)
 
