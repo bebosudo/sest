@@ -1,17 +1,11 @@
 from django.test import TestCase, Client
-from django.utils import timezone
 from django.conf import settings
 from django.core import mail
 
 from .models import *
+from .views import messages
 
 import uuid
-# import postmarker
-# from postmarker.core import PostmarkClient
-# import smtplib
-
-POSTMARK_API_TEST = "POSTMARK_API_TEST"
-# postmark_client_test = PostmarkClient(token=POSTMARK_API_TEST)
 
 
 class UploadView(TestCase):
@@ -37,20 +31,22 @@ class UploadView(TestCase):
                          0].field_set.count(), len(self.d))
         self.assertEqual(response.status_code, 200)
 
-    def test_upload_exceeds_no_fields(self):
+    def test_upload_exceeding_no_fields(self):
         """Use a POST http (made with the Client class from the test module) to
         check that we are not allowed to post more fields than the max number
         available.
         """
 
-        self.d = {'field{}'.format(i + 1): i +
-                  1 for i in range(Channel.MAX_NUMBER_FIELDS + 2)}
+        self.d = {'field{}'.format(i + 1): i + 1
+                  for i in range(Channel.MAX_NUMBER_FIELDS + 2)}
         response = self.client.post('/{}/upload/'.format(self.ch.id), self.d,
                                     HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
 
         self.assertEqual(response.status_code, 406)
+        self.assertEqual(response.content.decode("utf-8"),
+                         messages["MSG_NUMBER_FIELDS_EXCEEDED"])
 
-    def test_upload_zero_no_fields(self):
+    def test_upload_empty_record_object(self):
         """Use a POST http (made with the Client class from the test module) to
         make sure that user has to publish at least one field.
         """
@@ -60,6 +56,8 @@ class UploadView(TestCase):
                                     HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
 
         self.assertEqual(response.status_code, 406)
+        self.assertEqual(response.content.decode("utf-8"),
+                         messages["MSG_EMPTY_REQUEST"])
 
     def test_upload_wrong_write_API(self):
         """Use a POST http (made with the Client class from the test module) to
@@ -73,6 +71,8 @@ class UploadView(TestCase):
                                     HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
 
         self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content.decode("utf-8"),
+                         messages["MSG_WRONG_WRITE_KEY"])
 
     def test_upload_missing_write_API(self):
         """Use a POST http (made with the Client class from the test module) to
@@ -84,6 +84,8 @@ class UploadView(TestCase):
         #                             HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
 
         self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content.decode("utf-8"),
+                         messages["MSG_MISSING_WRITE_KEY"])
 
     def test_upload_wrong_HTTP_request(self):
         """Use a POST http (made with the Client class from the test module) to
@@ -91,9 +93,43 @@ class UploadView(TestCase):
         write API key is provided.
         """
 
-        # response = self.client.post('/{}/upload/'.format(self.ch.id), d)
+        # response = self.client.post(...)
         response = self.client.get('/{}/upload/'.format(self.ch.id), self.d,
                                    HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content.decode("utf-8"),
+                         messages["MSG_WRONG_HTTP_METHOD"])
+
+    # def test_refuse_records_with_a_single_field_with_non_standard_keys(self):
+    def test_refuse_record_with_a_single_field_with_non_standard_keys(self):
+        """Refuse to save an object with a wrong key encoding, by exiting with
+        a wrong HTTP status response.
+
+        For example, refuse to save an object like this:
+
+        {"field__number_missing_here__": 3.141592}
+        """
+
+        self.d = {"field__number_missing_here__": 3.141592}
+        response = self.client.post('/{}/upload/'.format(self.ch.id), self.d,
+                                    HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
+
+        self.assertEqual(response.status_code, 406)
+
+    def test_record_correct_fields_and_single_one_non_standard(self):
+        """When posting an object, raise an exception if the fields are not
+        correct and refuse to save the object.
+
+        For example, refuse to save an object like this:
+
+        {"field2": 3.141592, "field__number_missing_here__": 3.141592}
+        """
+
+        self.d.update({"field__number_missing_here__": 3.141592})
+
+        response = self.client.post('/{}/upload/'.format(self.ch.id), self.d,
+                                    HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
 
         self.assertEqual(response.status_code, 400)
 
@@ -122,8 +158,8 @@ class FieldEncoding(TestCase):
 
         # r contains the record object just created.
         r = self.ch.record_set.all()[0]
-        self.assertEqual(r.field_set.count(), len(self.d))
 
+        self.assertEqual(r.field_set.count(), len(self.d))
         self.assertEqual(r.field_set.all()[0].val, self.d['field2'])
 
     def test_field_encoding_no_operation_defined(self):
@@ -192,13 +228,8 @@ class EmailSending(TestCase):
         e = self.u.notificationemail_set.create(address="")
         self.ch.notification_email = e
 
-        # Uses Postmarker exception ATM. Create more tests for other services.
-        # as cl_err:
         # with self.assertRaises(smtplib.SMTPRecipientsRefused) as e:
         # with self.assertRaises(postmarker.exceptions.ClientError):
         self.ch.send_email("test message")
 
         self.assertEqual(len(mail.outbox), 0)
-
-        # TODO: Inspect the context manager and make sure that the exception
-        # raised matches the error being tested.

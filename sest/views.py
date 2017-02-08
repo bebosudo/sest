@@ -10,8 +10,16 @@ import re
 field_pattern = re.compile(r"(field[0-9]+)")
 field_extract_number = re.compile(r"field([0-9]+)")
 HTTP_WRITE_KEY = "X_SEST_Write_Key"
-TEMPERATURE_THRESHOLD = 35
-HUMIDITY_THRESHOLD = 90
+
+messages = {
+    "MSG_NUMBER_FIELDS_EXCEEDED": "Max number of fields exceeded.",
+    "MSG_WRONG_WRITE_KEY": "Incorrect SEST write key associated with the "
+                           "channel you have chosen.",
+    "MSG_MISSING_WRITE_KEY": "Missing writing API key.",
+    "MSG_WRONG_HTTP_METHOD": "Only POST requests allowed.",
+    "MSG_EMPTY_REQUEST": "Send at least one correct field inside your"
+                         " message.",
+}
 
 
 class IndexView(generic.ListView):
@@ -56,18 +64,17 @@ def upload(request, channel_id):
     """
 
     if request.method != "POST":
-        return HttpResponseBadRequest("Only POST requests allowed.")
+        return HttpResponseBadRequest(messages["MSG_WRONG_HTTP_METHOD"])
 
     write_API_key = request.META.get("HTTP_{}".format(HTTP_WRITE_KEY.upper()))
 
     if not write_API_key:
-        return HttpResponseBadRequest("Missing writing API key.")
+        return HttpResponseBadRequest(messages["MSG_MISSING_WRITE_KEY"])
 
     channel = get_object_or_404(Channel, pk=channel_id)
 
     if str(channel.write_key) != write_API_key:
-        return HttpResponseBadRequest("Incorrect SEST write key associated "
-                                      "with the channel you have chosen.")
+        return HttpResponseBadRequest(messages["MSG_WRONG_WRITE_KEY"])
 
     # Collect the fields value from the body of the http POST message into a
     # dictionary. Use a regex to select only the fields like 'field<number>'.
@@ -75,7 +82,7 @@ def upload(request, channel_id):
               if field_pattern.match(k)}
 
     if len(fields) > Channel.MAX_NUMBER_FIELDS:
-        return HttpResponse("Max number of fields exceeded.", status=406)
+        return HttpResponse(messages["MSG_NUMBER_FIELDS_EXCEEDED"], status=406)
 
     elif any(fields):
         # The object has to be created before attaching fields objects to it.
@@ -96,6 +103,7 @@ def upload(request, channel_id):
             # extract number from: `field(123)'
             field_no = field_extract_number.findall(field_name)[0]
             field_no = int(field_no)
+            field_no = int(field_no)
 
             r.field_set.create(field_no=field_no, val=val)
 
@@ -105,5 +113,4 @@ def upload(request, channel_id):
         return HttpResponse()
 
     else:
-        return HttpResponse("Send at least one field inside your message.",
-                            status=406)
+        return HttpResponse(messages["MSG_EMPTY_REQUEST"], status=406)
