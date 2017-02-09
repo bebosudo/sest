@@ -13,11 +13,15 @@ HTTP_WRITE_KEY = "X_SEST_Write_Key"
 
 messages = {
     "NUMBER_FIELDS_EXCEEDED": "Max number of fields exceeded.",
-    "WRONG_WRITE_KEY": "Incorrect SEST write key associated with the "
-    "channel you have chosen.",
+    "WRONG_WRITE_KEY": ("Incorrect SEST write key associated with the "
+                        "channel you have chosen."),
     "MISSING_WRITE_KEY": "Missing writing API key.",
     "WRONG_HTTP_METHOD": "Only POST requests allowed.",
     "WRONG_FIELDS_PASSED": "One or more fields sent have wrong names.",
+    "WRONG_VALUE_FIELD_ENCODING": ("One of the value sent was not coherent "
+                                   "with the encoding defined for the field "
+                                   "number for the channel, or the channel is"
+                                   "not defined to handle that field number."),
     "EMPTY_VALUES_NOT_ALLOWED": "Fields with empty values are not allowed."
 }
 
@@ -109,7 +113,16 @@ def upload(request, channel_id):
             field_no = field_extract_number.findall(field_name)[0]
             field_no = int(field_no)
 
-            r.field_set.create(field_no=field_no, val=val)
+            try:
+                r.field_set.create(field_no=field_no, val=val)
+            except ValueError:
+                # A value with a wrong encoding (according to the associated
+                # FieldEncoding object on the field number) was going to be
+                # saved.
+                r.delete()
+                return HttpResponseBadRequest(
+                    messages["WRONG_VALUE_FIELD_ENCODING"]
+                )
 
         # Save the object again with the new fields added, in order to possibly
         # trigger an action.
@@ -117,4 +130,5 @@ def upload(request, channel_id):
         return HttpResponse()
 
     else:
+        # This means that the user tried to insert an empty record.
         return HttpResponseBadRequest(messages["WRONG_FIELDS_PASSED"])

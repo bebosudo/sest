@@ -17,18 +17,20 @@ class UploadView(TestCase):
                                          number_fields=2
                                          )
         self.channel_uuid = str(self.ch.write_key)
-        self.d = {'field2': 45}
+        self.ch.fieldencoding_set.create(field_no=1, encoding="float")
+        self.ch.fieldencoding_set.create(field_no=2, encoding="float")
+        self.d = {"field2": 45}
 
     def test_upload_successful(self):
         """Use a POST http (made with the Client class from the test module) to
         test the correct upload of data to a channel, using the view `upload'.
         """
 
-        response = self.client.post('/{}/upload/'.format(self.ch.id), self.d,
+        response = self.client.post("/{}/upload/".format(self.ch.id), self.d,
                                     HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
 
-        self.assertEqual(self.ch.record_set.all()[
-                         0].field_set.count(), len(self.d))
+        self.assertEqual(self.ch.record_set.all()[0].field_set.count(),
+                         len(self.d))
         self.assertEqual(response.status_code, 200)
 
     def test_upload_exceeding_no_fields(self):
@@ -37,9 +39,9 @@ class UploadView(TestCase):
         available.
         """
 
-        self.d = {'field{}'.format(i + 1): i + 1
+        self.d = {"field{}".format(i + 1): i + 1
                   for i in range(Channel.MAX_NUMBER_FIELDS + 2)}
-        response = self.client.post('/{}/upload/'.format(self.ch.id), self.d,
+        response = self.client.post("/{}/upload/".format(self.ch.id), self.d,
                                     HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
 
         self.assertEqual(response.status_code, 400)
@@ -54,7 +56,7 @@ class UploadView(TestCase):
 
         self.channel_uuid = uuid.uuid4()
 
-        response = self.client.post('/{}/upload/'.format(self.ch.id), self.d,
+        response = self.client.post("/{}/upload/".format(self.ch.id), self.d,
                                     HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
 
         self.assertEqual(response.status_code, 400)
@@ -67,7 +69,7 @@ class UploadView(TestCase):
         write API key is provided.
         """
 
-        response = self.client.post('/{}/upload/'.format(self.ch.id), self.d)
+        response = self.client.post("/{}/upload/".format(self.ch.id), self.d)
         #                             HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
 
         self.assertEqual(response.status_code, 400)
@@ -81,7 +83,7 @@ class UploadView(TestCase):
         """
 
         # response = self.client.post(...)
-        response = self.client.get('/{}/upload/'.format(self.ch.id), self.d,
+        response = self.client.get("/{}/upload/".format(self.ch.id), self.d,
                                    HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
 
         self.assertEqual(response.status_code, 400)
@@ -95,7 +97,7 @@ class UploadView(TestCase):
         """
 
         self.d = {}
-        response = self.client.post('/{}/upload/'.format(self.ch.id), self.d,
+        response = self.client.post("/{}/upload/".format(self.ch.id), self.d,
                                     HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
 
         self.assertEqual(response.status_code, 400)
@@ -106,7 +108,7 @@ class UploadView(TestCase):
         """Refuse to save an object with a wrong key name out of two."""
 
         self.d.update({"field__number_missing__": 3.141592})
-        response = self.client.post('/{}/upload/'.format(self.ch.id), self.d,
+        response = self.client.post("/{}/upload/".format(self.ch.id), self.d,
                                     HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
 
         self.assertEqual(response.status_code, 400)
@@ -119,7 +121,7 @@ class UploadView(TestCase):
         self.d = {"field__number_missing__": 3.141592,
                   "field__here_as_well__": 3.141592}
 
-        response = self.client.post('/{}/upload/'.format(self.ch.id), self.d,
+        response = self.client.post("/{}/upload/".format(self.ch.id), self.d,
                                     HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
 
         self.assertEqual(response.status_code, 400)
@@ -133,9 +135,9 @@ class UploadView(TestCase):
         process of uploading before discovering the empty value field.
         """
 
-        self.d["field3"] = ''
+        self.d["field3"] = ""
 
-        response = self.client.post('/{}/upload/'.format(self.ch.id), self.d,
+        response = self.client.post("/{}/upload/".format(self.ch.id), self.d,
                                     HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
 
         self.assertEqual(response.status_code, 400)
@@ -144,78 +146,43 @@ class UploadView(TestCase):
         self.assertEqual(Field.objects.count(), 0)
         self.assertEqual(Record.objects.count(), 0)
 
+    def test_upload_field_wrong_value_encoding(self):
+        """Refuse to save a field with a value that isn't coherent with the
+        FieldEncoding associated with that specific field_no.
+        """
+
+        self.d["field2"] = "asdf"
+
+        response = self.client.post("/{}/upload/".format(self.ch.id), self.d,
+                                    HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content.decode("utf-8"),
+                         messages["WRONG_VALUE_FIELD_ENCODING"])
+        self.assertEqual(Field.objects.count(), 0)
+        self.assertEqual(Record.objects.count(), 0)
+
+    def test_upload_no_field_encoding_defined(self):
+        """Refuse to save a record that tries to save a field that doesn't have
+        an associated FieldEncoding object linked at the channel.
+        """
+
+        self.ch.fieldencoding_set.get(field_no=2).delete()
+
+        response = self.client.post("/{}/upload/".format(self.ch.id), self.d,
+                                    HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content.decode("utf-8"),
+                         messages["WRONG_VALUE_FIELD_ENCODING"])
+        self.assertEqual(Field.objects.count(), 0)
+        self.assertEqual(Record.objects.count(), 0)
+
 
 ##############################################################################
 
 
-class FieldEncoding(TestCase):
-
-    def setUp(self):
-        self.client = Client()
-        self.u = User.objects.create(username="test")
-        self.ch = Channel.objects.create(user=self.u,
-                                         number_fields=2
-                                         )
-        self.channel_uuid = str(self.ch.write_key)
-        self.ch.fieldencoding_set.create(field_no=1, encoding="float")
-        self.ch.fieldencoding_set.create(field_no=2, encoding="float")
-        self.d = {'field2': 3.141592}
-
-    def test_fields_correct(self):
-        """Create a new record and test the number and values of fields saved.
-        """
-
-        self.client.post('/{}/upload/'.format(self.ch.id), self.d,
-                         HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
-
-        # r contains the record object just created.
-        r = self.ch.record_set.all()[0]
-
-        self.assertEqual(r.field_set.count(), len(self.d))
-        self.assertEqual(r.field_set.all()[0].val, self.d['field2'])
-
-    def test_field_encoding_no_operation_defined(self):
-        """Create a new record, but set a wrong encoding in the channel.
-
-        This should never happen, since the user should choose an encoding(
-        boolean, int, float, etc) from a list with pre - defined objects.
-        """
-
-        # Wrong encoding set here.
-        fe = self.ch.fieldencoding_set.get(field_no=2)
-        fe.encoding = "asdf"
-        fe.save()
-
-        self.client.post('/{}/upload/'.format(self.ch.id), self.d,
-                         HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
-
-        # r contains the record object just created.
-        r = self.ch.record_set.all()[0]
-
-        with self.assertRaises(ValueError):
-            r.field_set.all()[0].val
-
-    def test_field_encoding_wrong_value_saved(self):
-        """Create a new record with a wrong value.
-
-        This should never happen, since the values should be checked for
-        consistency right before saving them in the DB.
-        """
-
-        self.d = {'field2': 'asdf'}
-        self.client.post('/{}/upload/'.format(self.ch.id), self.d,
-                         HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
-
-        # r contains the record object just created.
-        r = self.ch.record_set.all()[0]
-
-        with self.assertRaises(ValueError):
-            r.field_set.all()[0].val
-
-##############################################################################
-
-
-class EmailSending(TestCase):
+class EmailSendingGeneral(TestCase):
 
     def setUp(self):
         self.client = Client()
@@ -235,9 +202,13 @@ class EmailSending(TestCase):
 
         self.assertEqual(len(mail.outbox), 1)
 
-    def test_send_email_wrong_recipient(self):
+    def tes_t_send_email_wrong_recipient(self):
+        """In a real case scenario, an email sent to a wrong recipient should
+        not be sent, but in a testing environment it passes without
+        complaining.
+        """
 
-        e = self.u.notificationemail_set.create(address="")
+        e = self.u.notificationemail_set.create(address="asdf#sdf")
         self.ch.notification_email = e
 
         # with self.assertRaises(smtplib.SMTPRecipientsRefused) as e:

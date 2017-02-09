@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.core.exceptions import ObjectDoesNotExist
 
 from .email_collection import send_email_wrapper
 
@@ -7,9 +8,36 @@ import uuid
 import operator as op
 from itertools import product
 
+
+messages = {
+    "WRONG_ENCODING": ("Wrong encoding for the field no. {}, which is part of "
+                       "the channel {}. Encoding proposed: '{}'; example of a "
+                       "value saved: '{}'."),
+    "NO_ENCODING": ("No decoding operation defined in order to restore values "
+                    "at field no. {} of the channel {}. Encoding proposed: "
+                    "'{}'; example of a value saved: '{}'."),
+}
+
+
+class WrongEncoding(Exception):
+    """Raised when attempting to save an object with an encoding different than
+    the one defined in its associated FieldEncoding
+    """
+    pass
+
+
+class NoEncoding(Exception):
+    """Raised when an user attempts to save an object that doesn't have a
+    matching field number with the FieldEncoding linked to the channel.
+    """
+    pass
+
+
+# ***************
 # The User model has been replaced by the one provided by
 # django.contrib.auth.models, which integrates many useful user-managing
 # features.
+# ***************
 
 
 class NotificationEmail(models.Model):
@@ -19,7 +47,8 @@ class NotificationEmail(models.Model):
     a user could choose to send notifications/alerts to different emails (and
     for example not to the one used to register to the service) for each
     channel he creates.
-    By design, only a single email can be set by the user for each channel.
+    By design, only a single notification email can be set by the user for each
+    channel.
     """
 
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -52,8 +81,14 @@ class Channel(models.Model):
         return "{} (created by user: '{}')".format(str(self.id),
                                                    repr(self.user))
 
+    def get_field_encoding(self, field_no):
+        # There should never be a MultipleObjectsReturned exception, since
+        # there's a unique constraint on channel and field_no fields of the
+        # FieldEncoding model.
+        return self.fieldencoding_set.get(field_no=field_no)
+
     def get_encoding(self, field_no):
-        return self.fieldencoding_set.get(field_no=field_no).encoding
+        return self.get_field_encoding(field_no).encoding
 
     def send_email(self, message=""):
         if not self.notification_email:
@@ -82,10 +117,9 @@ class Channel(models.Model):
             reaction = cond.check_condition(f)
             if reaction:
                 # If a condition is validated, trigger the relative action and
-                # then quit the execution.
-                return cond.react(record_to_check)
-
-        return False
+                # then quit the execution of further actions.
+                cond.react(record_to_check)
+                return
 
 
 class FieldEncoding(models.Model):
@@ -95,7 +129,11 @@ class FieldEncoding(models.Model):
 
     channel = models.ForeignKey(Channel, on_delete=models.CASCADE)
     field_no = models.PositiveSmallIntegerField()
+    # TODO: the user should be forced to choose only from a restricted list.
     encoding = models.CharField(max_length=50)
+
+    class Meta:
+        unique_together = ("channel", "field_no")
 
     def __str__(self):
         return "FieldEncoding obj on field no. {}".format(self.field_no)
@@ -157,7 +195,7 @@ class ConditionAndReaction(models.Model):
                                  "gt", "ge", "bt", "ot"):
             return float(self._value)
 
-        # The others operations already store values as strings
+        # The other operations already store values as strings.
         return self._value
 
     @val.setter
@@ -218,7 +256,8 @@ class ConditionAndReaction(models.Model):
                     )
 
         if self.action == "email":
-            return self.channel.send_email(message=sentence)
+            self.channel.send_email(message=sentence)
+            return
 
         # So far there are no other actions allowed to be executed.
         raise ValueError("No other actions allowed.")
@@ -231,9 +270,6 @@ class Record(models.Model):
     # In order to save also the time the object has been created, create
     # another DateTimeField with auto_now=True.
 
-    def __str__(self):
-        return self.insertion_time.strftime('%Y-%m-%d %H:%M:%S %Z')
-
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
         if self.field_set.count() > 0:
@@ -241,59 +277,82 @@ class Record(models.Model):
             # the channel.
             self.channel.check_and_react(self)
 
+    def __str__(self):
+        return self.insertion_time.strftime('%Y-%m-%d %H:%M:%S %Z')
+
 
 class Field(models.Model):
-    record = models.ForeignKey(Record,
-                               # related_name='fields',
-                               on_delete=models.CASCADE)
+    record = models.ForeignKey(Record, on_delete=models.CASCADE)
     field_no = models.PositiveSmallIntegerField()
     # We save every field value as a string, and then we use a function defined
     # by the user inside each channel to restore the original meaning of the
     # value.
     _value = models.CharField(max_length=100)
 
+    class Meta:
+        unique_together = ("record", "field_no")
+
+    def save(self, *args, **kwargs):
+        # Check whether the field that is going to be saved matches the
+        # encoding defined for that specific field position: encoding are
+        # stored in the FieldEncoding objects, attached to each channel.
+        try:
+            self.val
+        except WrongEncoding:
+            # Don't save values with a wrong encoding.
+            raise ValueError
+        except NoEncoding:
+            # Refuse to save values without an associated FieldEncoding.
+            # This should never happen since the user should choose the
+            # encoding from a restricted and system-defined list.
+            raise ValueError
+
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return "{} - {}".format(self.record, self.val)
 
     @property
     def val(self):
-        encoding = self.record.channel.get_encoding(field_no=self.field_no)
+        try:
+            encoding = self.record.channel.get_encoding(field_no=self.field_no)
+        except ObjectDoesNotExist:
+            # If no FieldEncoding are defined for the field the user attempts
+            # to save:
+            raise NoEncoding(messages["NO_ENCODING"].format(
+                self.field_no,
+                self.record.channel,
+                None,
+                self._value,
+            )
+            )
 
-        # This changes the default exception error to something more
-        # verbose.
-
-        # TODO: provide a safe way to save the encoding at the Channel level,
-        # and make sure that the values are checked also at the saving.
         try:
             if encoding == "float":
                 return float(self._value)
             elif encoding == "int":
-                return int(self._value)
+                # See R19.
+                return int(float(self._value))
             elif encoding == "string":
                 return self._value
         except ValueError:
             # If an incorrect value has been saved as a string into the DB:
-            raise ValueError("Wrong encoding for the field no. {}, which is "
-                             "part of the channel {}. Encoding proposed: '{}';"
-                             " example of a value saved: '{}'.".format(
-                                 self.field_no,
-                                 self.record.channel,
-                                 encoding,
-                                 self._value,
-                             )
-                             )
+            raise WrongEncoding(messages["WRONG_ENCODING"].format(
+                self.field_no,
+                self.record.channel,
+                encoding,
+                self._value,
+            )
+            )
         else:
             # If no decoding operations are defined to restore the value:
-            raise ValueError("No decoding operation defined in order to "
-                             "restore values at field no. {} of the channel"
-                             " {}. Encoding proposed: '{}'; example of a value"
-                             " saved: '{}'.".format(
-                                 self.field_no,
-                                 self.record.channel,
-                                 encoding,
-                                 self._value,
-                             )
-                             )
+            raise NoEncoding(messages["NO_ENCODING"].format(
+                self.field_no,
+                self.record.channel,
+                encoding,
+                self._value,
+            )
+            )
 
     @val.setter
     def val(self, v):

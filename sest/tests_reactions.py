@@ -1,19 +1,8 @@
-# Tests with boolean reactions, that simply return True whether an action
-# has to be triggered.
-
 from django.test import TestCase, Client
-from django.utils import timezone
 from django.conf import settings
 from django.core import mail
 
 from .models import *
-
-# import uuid
-# import postmarker
-# from postmarker.core import PostmarkClient
-
-# POSTMARK_API_TEST = "POSTMARK_API_TEST"
-# postmark_client_test = PostmarkClient(token=POSTMARK_API_TEST)
 
 
 class Reactions(TestCase):
