@@ -12,13 +12,13 @@ field_extract_number = re.compile(r"field([0-9]+)")
 HTTP_WRITE_KEY = "X_SEST_Write_Key"
 
 messages = {
-    "MSG_NUMBER_FIELDS_EXCEEDED": "Max number of fields exceeded.",
-    "MSG_WRONG_WRITE_KEY": "Incorrect SEST write key associated with the "
-                           "channel you have chosen.",
-    "MSG_MISSING_WRITE_KEY": "Missing writing API key.",
-    "MSG_WRONG_HTTP_METHOD": "Only POST requests allowed.",
-    "MSG_EMPTY_REQUEST": "Send at least one correct field inside your"
-                         " message.",
+    "NUMBER_FIELDS_EXCEEDED": "Max number of fields exceeded.",
+    "WRONG_WRITE_KEY": "Incorrect SEST write key associated with the "
+    "channel you have chosen.",
+    "MISSING_WRITE_KEY": "Missing writing API key.",
+    "WRONG_HTTP_METHOD": "Only POST requests allowed.",
+    "WRONG_FIELDS_PASSED": "One or more fields sent have wrong names.",
+    "EMPTY_VALUES_NOT_ALLOWED": "Fields with empty values are not allowed."
 }
 
 
@@ -61,46 +61,51 @@ def upload(request, channel_id):
 
     Reference for the HTTP status codes
     https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
+
+    How to choose HTTP response codes:
+    http://racksburg.com/choosing-an-http-status-code/
     """
 
     if request.method != "POST":
-        return HttpResponseBadRequest(messages["MSG_WRONG_HTTP_METHOD"])
+        return HttpResponseBadRequest(messages["WRONG_HTTP_METHOD"])
 
     write_API_key = request.META.get("HTTP_{}".format(HTTP_WRITE_KEY.upper()))
 
     if not write_API_key:
-        return HttpResponseBadRequest(messages["MSG_MISSING_WRITE_KEY"])
+        return HttpResponseBadRequest(messages["MISSING_WRITE_KEY"])
 
     channel = get_object_or_404(Channel, pk=channel_id)
 
     if str(channel.write_key) != write_API_key:
-        return HttpResponseBadRequest(messages["MSG_WRONG_WRITE_KEY"])
+        return HttpResponseBadRequest(messages["WRONG_WRITE_KEY"])
 
-    # Collect the fields value from the body of the http POST message into a
-    # dictionary. Use a regex to select only the fields like 'field<number>'.
+    # Use a regex to select only the fields like 'field<number>'.
     fields = {k: v for (k, v) in request.POST.items()
               if field_pattern.match(k)}
 
     if len(fields) > Channel.MAX_NUMBER_FIELDS:
-        return HttpResponse(messages["MSG_NUMBER_FIELDS_EXCEEDED"], status=406)
+        return HttpResponseBadRequest(messages["NUMBER_FIELDS_EXCEEDED"])
+
+    elif len(fields) < len(request.POST.keys()):
+        # This means that the user inserted at least one field with an
+        # incorrect name.
+        return HttpResponseBadRequest(messages["WRONG_FIELDS_PASSED"])
 
     elif any(fields):
         # The object has to be created before attaching fields objects to it.
         r = Record.objects.create(channel=channel)
 
-        # Create new Field objects to link to the newly created record.
         for field_name, val in fields.items():
-            # Store in the db only the fields with a value.
-            # TODO: check whether this is useful. R9.
-            if not val:
-                continue
+            # 'field_name' and 'val' are strings like 'field2' and '3.5'.
 
-            # Extract the field number and pass it to create the field element.
-            # We can select just the first occurrence since we already
-            # previously parsed the fields with another regex.
-            # This allows to keep track of the "position" of the field passed
-            # in the upload request.
-            # extract number from: `field(123)'
+            # Store in the db only the fields with a value. Clean up in case.
+            if not val:
+                r.delete()
+                return HttpResponseBadRequest(
+                    messages["EMPTY_VALUES_NOT_ALLOWED"]
+                )
+
+            # Extract the field number, to store it to the right position.
             field_no = field_extract_number.findall(field_name)[0]
             field_no = int(field_no)
 
@@ -112,4 +117,4 @@ def upload(request, channel_id):
         return HttpResponse()
 
     else:
-        return HttpResponse(messages["MSG_EMPTY_REQUEST"], status=406)
+        return HttpResponseBadRequest(messages["WRONG_FIELDS_PASSED"])

@@ -42,22 +42,9 @@ class UploadView(TestCase):
         response = self.client.post('/{}/upload/'.format(self.ch.id), self.d,
                                     HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
 
-        self.assertEqual(response.status_code, 406)
+        self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content.decode("utf-8"),
-                         messages["MSG_NUMBER_FIELDS_EXCEEDED"])
-
-    def test_upload_empty_record_object(self):
-        """Use a POST http (made with the Client class from the test module) to
-        make sure that user has to publish at least one field.
-        """
-
-        self.d = {}
-        response = self.client.post('/{}/upload/'.format(self.ch.id), self.d,
-                                    HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
-
-        self.assertEqual(response.status_code, 406)
-        self.assertEqual(response.content.decode("utf-8"),
-                         messages["MSG_EMPTY_REQUEST"])
+                         messages["NUMBER_FIELDS_EXCEEDED"])
 
     def test_upload_wrong_write_API(self):
         """Use a POST http (made with the Client class from the test module) to
@@ -72,7 +59,7 @@ class UploadView(TestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content.decode("utf-8"),
-                         messages["MSG_WRONG_WRITE_KEY"])
+                         messages["WRONG_WRITE_KEY"])
 
     def test_upload_missing_write_API(self):
         """Use a POST http (made with the Client class from the test module) to
@@ -85,7 +72,7 @@ class UploadView(TestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content.decode("utf-8"),
-                         messages["MSG_MISSING_WRITE_KEY"])
+                         messages["MISSING_WRITE_KEY"])
 
     def test_upload_wrong_HTTP_request(self):
         """Use a POST http (made with the Client class from the test module) to
@@ -99,39 +86,64 @@ class UploadView(TestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content.decode("utf-8"),
-                         messages["MSG_WRONG_HTTP_METHOD"])
+                         messages["WRONG_HTTP_METHOD"])
 
-    # def test_refuse_records_with_a_single_field_with_non_standard_keys(self):
-    def test_refuse_record_with_a_single_field_with_non_standard_keys(self):
-        """Refuse to save an object with a wrong key encoding, by exiting with
-        a wrong HTTP status response.
-
-        For example, refuse to save an object like this:
-
-        {"field__number_missing_here__": 3.141592}
+    def test_upload_empty_record_object(self):
+        """Use a POST http (made with the Client class from the test module) to
+        make sure that the user publishes all the fields with the correct
+        names.
         """
 
-        self.d = {"field__number_missing_here__": 3.141592}
+        self.d = {}
         response = self.client.post('/{}/upload/'.format(self.ch.id), self.d,
                                     HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
 
-        self.assertEqual(response.status_code, 406)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content.decode("utf-8"),
+                         messages["WRONG_FIELDS_PASSED"])
 
-    def test_record_correct_fields_and_single_one_non_standard(self):
-        """When posting an object, raise an exception if the fields are not
-        correct and refuse to save the object.
+    def test_upload_record_one_key_wrong(self):
+        """Refuse to save an object with a wrong key name out of two."""
 
-        For example, refuse to save an object like this:
+        self.d.update({"field__number_missing__": 3.141592})
+        response = self.client.post('/{}/upload/'.format(self.ch.id), self.d,
+                                    HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
 
-        {"field2": 3.141592, "field__number_missing_here__": 3.141592}
-        """
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content.decode("utf-8"),
+                         messages["WRONG_FIELDS_PASSED"])
 
-        self.d.update({"field__number_missing_here__": 3.141592})
+    def test_upload_record_all_keys_wrong(self):
+        """Refuse to save an object with all key names wrong."""
+
+        self.d = {"field__number_missing__": 3.141592,
+                  "field__here_as_well__": 3.141592}
 
         response = self.client.post('/{}/upload/'.format(self.ch.id), self.d,
                                     HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
 
         self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content.decode("utf-8"),
+                         messages["WRONG_FIELDS_PASSED"])
+
+    def test_upload_field_with_empty_values(self):
+        """In case there's at least one field with an empty value, exit with an
+        error.
+        Perform the needed cleanup of data partially saved in the DB during the
+        process of uploading before discovering the empty value field.
+        """
+
+        self.d["field3"] = ''
+
+        response = self.client.post('/{}/upload/'.format(self.ch.id), self.d,
+                                    HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content.decode("utf-8"),
+                         messages["EMPTY_VALUES_NOT_ALLOWED"])
+        self.assertEqual(Field.objects.count(), 0)
+        self.assertEqual(Record.objects.count(), 0)
+
 
 ##############################################################################
 
@@ -165,8 +177,8 @@ class FieldEncoding(TestCase):
     def test_field_encoding_no_operation_defined(self):
         """Create a new record, but set a wrong encoding in the channel.
 
-        This should never happen, since the user should choose an encoding (
-        boolean, int, float, etc) from a list with pre-defined objects.
+        This should never happen, since the user should choose an encoding(
+        boolean, int, float, etc) from a list with pre - defined objects.
         """
 
         # Wrong encoding set here.
