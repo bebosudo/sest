@@ -18,11 +18,11 @@ Do not change the order or insert new reqs in the middle of the list.
 
 1. make the user choose which kind of field encoding to use from a defined list for each field of the channel.
 
-1. check whether the values are of the correct type at the saving time.
+1. **==>** check whether the values are of the correct type at the saving time.
 
-1. check (with a test) that requests with wrong field names (instead of field1, .., field43) are not accepted by the upload view.
+1. ~~check (with a test) that requests with wrong field names (instead of field1, .., field43) are not accepted by the upload view.~~
 
-1. check (with a test) that fields (keys) without values (field1=& ...) are not accepted by the upload view.
+1. ~~check (with a test) that fields (keys) without values (field1=& ...) are not accepted by the upload view.~~
 
 10. **[linked with R3]** At the saving time, check that the values are consistent with their field encoding.
 
