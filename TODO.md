@@ -33,12 +33,16 @@ Do not change the order or insert new reqs in the middle of the list.
 1. **[WEB/secondary req.]** validate the email the user inserts, by making sure that he really owns that address.
 Cornercase: if the user already certified their registration email, there's no need to ask to certificate it again.
 
-1. translations.
+1. **[WEB]** translations.
 
 15. ~~Make sure that there are no more than one FieldEncoding object for each field_no (there should be something like a composite pk on the channel and the field_no).~~
 
-1. update the secret_things_example.py file ~~(and rename them secret_settings{,_example}.py)~~
+1. update the secret_settings_example.py file ~~(and rename them secret_settings{,_example}.py)~~
 
 1. check and test what happens when many 'fieldX' with the same name (and diff values?) are passed to the upload view to be saved. --> this shouldn't happen, since the field should overwrite each other when are read by django.
 
 1. ~~https://www.peterbe.com/plog/interesting-casting-in-python~~
+
+1. -
+
+20. -

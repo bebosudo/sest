@@ -331,7 +331,7 @@ class Field(models.Model):
             if encoding == "float":
                 return float(self._value)
             elif encoding == "int":
-                # See R19.
+                # See R18.
                 return int(float(self._value))
             elif encoding == "string":
                 return self._value
