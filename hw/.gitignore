@@ -1,0 +1,7 @@
+.pioenvs
+.piolibdeps
+.travis.yml
+work/
+
+# This is something related to the Deviot plugin of Sublime Text. It creates nested dirs.
+src/src/
