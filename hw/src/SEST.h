@@ -11,6 +11,7 @@ const int MAX_NUMBER_FIELDS = 3;
 
 class SEST {
     uint32_t ch_id;
+    Client& client;
     std::string fields[MAX_NUMBER_FIELDS];
   public:
     SEST(Client& client, uint32_t ch_id);

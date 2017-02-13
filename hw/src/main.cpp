@@ -1,10 +1,10 @@
-// SEST library. 2017, Alberto Chiusole
+// SEST library.
+// Alberto Chiusole -- 2017
 
 
 #include "SEST.h"
 #include <Arduino.h>
 #include "ESP8266WiFi.h"
-// #include <string>
 
 const char* ssid = "test";
 const char* pswd = "test";
@@ -21,7 +21,8 @@ void setup() {
       Serial.print(".");
     }
 
-    SEST sest(client);
+    uint32_t ch_id = 12;
+    SEST sest(client, ch_id);
 }
 
 
