@@ -10,11 +10,15 @@
 const int MAX_NUMBER_FIELDS = 3;
 
 class SEST {
-    uint32_t ch_id;
-    Client& client;
-    std::string fields[MAX_NUMBER_FIELDS];
+    const char* _address;
+    Client& _client;
+    std::string _fields[MAX_NUMBER_FIELDS];
+
+    char* extract_domain(const* char _add);
+    char* extract_path(const* char _add);
+
   public:
-    SEST(Client& client, uint32_t ch_id);
+    SEST(Client& client, const char* address);
     ~SEST();
 
     bool push(int value);

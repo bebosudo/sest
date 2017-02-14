@@ -1,4 +1,4 @@
-# Install PlatformIO Core to build and upload
+# Install PlatformIO Core to build and upload to the board
 
 Install the files needed for the esp8266 version 12 board:
 

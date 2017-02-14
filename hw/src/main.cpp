@@ -8,6 +8,7 @@
 
 const char* ssid = "test";
 const char* pswd = "test";
+const char* address = "example.com/123/upload";
 WiFiClient client;
 const int httpPort = 80;
 
@@ -21,8 +22,7 @@ void setup() {
       Serial.print(".");
     }
 
-    uint32_t ch_id = 12;
-    SEST sest(client, ch_id);
+    SEST sest(client, address);
 }
 
 
