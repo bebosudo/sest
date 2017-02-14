@@ -10,19 +10,22 @@
 const int MAX_NUMBER_FIELDS = 3;
 
 class SEST {
-    const char* _address;
+    std::string _address;
+    std::string _host;
+    std::string _path;
     Client& _client;
     std::string _fields[MAX_NUMBER_FIELDS];
 
-    char* extract_domain(const* char _add);
-    char* extract_path(const* char _add);
+    bool is_url_valid() const;
+    void extract_domain();
+    void extract_path();
 
   public:
-    SEST(Client& client, const char* address);
+    SEST(Client& client, std::string address);
     ~SEST();
 
     bool push(int value);
+    // void print() const;
 };
-
 
 #endif

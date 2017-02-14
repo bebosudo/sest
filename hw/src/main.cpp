@@ -1,10 +1,10 @@
 // SEST library.
 // Alberto Chiusole -- 2017
 
-
+#include "ESP8266WiFi.h"
 #include "SEST.h"
 #include <Arduino.h>
-#include "ESP8266WiFi.h"
+#include <string>
 
 const char* ssid = "test";
 const char* pswd = "test";
@@ -18,14 +18,12 @@ void setup() {
 
     WiFi.begin(ssid, pswd);
     while (WiFi.status() != WL_CONNECTED) {
-      delay(500);
-      Serial.print(".");
+        delay(500);
+        Serial.print(".");
     }
 
     SEST sest(client, address);
+    // sest.print();
 }
 
-
-void loop() {
-
-}
+void loop() {}
