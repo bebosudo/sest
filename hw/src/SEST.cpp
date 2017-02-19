@@ -122,8 +122,9 @@ bool SEST::push() {
     if (!_connect_to_server() || _write_key == "" || body == "") {
         return false;
     }
-    std::string header = "";
-    header += "Host: ";
+    std::string header = "POST ";
+    header += _path;
+    header += " HTTP/1.1\nHost: ";
     header += _host;
     header += "\nConnection: close\nUser-Agent: ";
     header += USER_AGENT;
