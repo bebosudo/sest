@@ -43,6 +43,6 @@ Cornercase: if the user already certified their registration email, there's no n
 
 1. ~~https://www.peterbe.com/plog/interesting-casting-in-python~~
 
-1. -
+1. check what happens when an empty value is passed with a field.
 
 20. -

@@ -4,28 +4,38 @@
 #define __SEST_H__
 
 #include <Client.h>
-#include <cstdint>
 #include <string>
 
 const int MAX_NUMBER_FIELDS = 3;
+const std::string USER_AGENT = "SEST_CLIENT";
+const std::string HTTP_WRITE_KEY = "X_SEST_Write_Key";
 
 class SEST {
+    Client& _client;
     std::string _address;
+    std::string _write_key;
     std::string _host;
     std::string _path;
-    Client& _client;
-    std::string _fields[MAX_NUMBER_FIELDS];
+    unsigned int _port;
+
+    std::string _field_arr[MAX_NUMBER_FIELDS];
 
     bool is_url_valid() const;
     void extract_domain();
     void extract_path();
+    bool _connect_to_server();
+    std::string _get_fields_encoded() const;
+    void _reset_fields();
 
   public:
-    SEST(Client& client, std::string address);
+    SEST(Client& client, const std::string& address,
+         const std::string& write_key);
     ~SEST();
 
-    bool push(int value);
-    // void print() const;
+    bool set(unsigned int field_no, int value);
+    void set_port(unsigned int port);
+    void print() const;
+    bool push();
 };
 
 #endif

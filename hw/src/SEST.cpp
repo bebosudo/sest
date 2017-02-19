@@ -2,11 +2,23 @@
 
 #include "SEST.h"
 #include <algorithm>
-#include <iostream>
+#include <cstdint>
 #include <string>
 
-SEST::SEST(Client& client, std::string address)
-        : _client(client), _address(address) {
+// Needed for the int/float to string conversion.
+#include <iomanip>
+#include <locale>
+#include <sstream>
+
+template <typename T> std::string NumberToString(T Number) {
+    std::stringstream ss;
+    ss << Number;
+    return ss.str();
+}
+
+SEST::SEST(Client& client, const std::string& address,
+           const std::string& write_key)
+        : _client(client), _address(address), _write_key(write_key) {
     // Strip newlines from the URI.
     _address.erase(std::remove(_address.begin(), _address.end(), '\n'),
                    _address.end());
@@ -24,10 +36,18 @@ SEST::SEST(Client& client, std::string address)
     if (is_url_valid()) {
         extract_domain();
         extract_path();
+    } else {
+        _host = "";
+        _path = "";
     }
+
+    // The port can be changed with the set_port method.
+    _port = 80;
 }
 
 SEST::~SEST() {}
+
+void SEST::set_port(unsigned int port) { _port = port; }
 
 bool SEST::is_url_valid() const {
     // I consider an host to be valid when there's at least a period that
@@ -56,8 +76,79 @@ void SEST::extract_path() {
     }
 }
 
-bool SEST::push(int value) {}
+bool SEST::set(unsigned int field_no, int value) {
+    if (field_no <= MAX_NUMBER_FIELDS) {
+        // The user creates field types counting from 1.
+        field_no--;
+        // TODO: check whether the value has to be saved as a string.
+        _field_arr[field_no] = NumberToString(value);
+        return true;
+    }
+    return false;
+}
 
-// void SEST::print() const { std::cout << _host << std::endl << _path <<
-// std::endl;
-// }
+bool SEST::_connect_to_server() {
+    if (_host == "") {
+        return false;
+    }
+    return _client.connect(_host.c_str(), _port);
+}
+
+std::string SEST::_get_fields_encoded() const {
+    std::string body = "";
+    for (int i = 0; i < MAX_NUMBER_FIELDS; i++) {
+        if (_field_arr[i] != "") {
+            if (body != "") {
+                body += "&";
+            }
+            body += "field";
+            body += i + 1;
+            body += "=";
+            body += _field_arr[i];
+        }
+    }
+    return body;
+}
+
+void SEST::_reset_fields() {
+    for (int i = 0; i < MAX_NUMBER_FIELDS; i++) {
+        _field_arr[i] = "";
+    }
+}
+
+bool SEST::push() {
+    std::string body = _get_fields_encoded();
+
+    if (!_connect_to_server() || _write_key == "" || body == "") {
+        return false;
+    }
+    std::string header = "";
+    header += "Host: ";
+    header += _host;
+    header += "\nConnection: close\nUser-Agent: ";
+    header += USER_AGENT;
+    header += "\n";
+    header += HTTP_WRITE_KEY;
+    header += ": ";
+    header += _write_key;
+    header += "\nContent-Type: application/x-www-form-urlencoded\n";
+    header += "Content-Length: ";
+
+    header += body.length();
+    header += "\n\n";
+
+    if (!_client.print(header.c_str())) {
+        return false;
+    }
+    if (!_client.print(body.c_str())) {
+        return false;
+    }
+    _reset_fields();
+    return true;
+}
+
+///////////////////////////////////////
+// For DEBUGGING:
+void SEST::print() const {
+    printf("%s\n%s\n----\n", _host.c_str(), _path.c_str());
+}
