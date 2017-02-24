@@ -1,4 +1,5 @@
 secret_settings.py
+secret_settings_heliohost.py
 db.sqlite3
 sest.sublime-workspace
 sest.sublime-project

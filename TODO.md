@@ -45,4 +45,16 @@ Cornercase: if the user already certified their registration email, there's no n
 
 1. check what happens when an empty value is passed with a field.
 
-20. -
+20. Add to the doc the following requirements to install the project on an unmanaged server (maybe isn't a complete list):
+
+  * git (to clone the repo)
+  * python3 and python3-virtualenv
+  * gcc (to compile uwsgi when installed with pip)
+  * nginx
+
+  Installable via pip [**pip install**]:
+  * django
+  * uwsgi
+  * postmarker (for the email sending)
+
+21. Write down the steps needed to set up the web-part of the project on a shared hosting.
