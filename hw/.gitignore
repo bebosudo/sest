@@ -2,6 +2,7 @@
 .piolibdeps
 .travis.yml
 work/
+src/secret_settings.h
 
 # This is something related to the Deviot plugin of Sublime Text. It creates nested dirs.
 src/src/

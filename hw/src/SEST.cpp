@@ -5,17 +5,6 @@
 #include <cstdint>
 #include <string>
 
-// Needed for the int/float to string conversion.
-#include <iomanip>
-#include <locale>
-#include <sstream>
-
-template <typename T> std::string NumberToString(T Number) {
-    std::stringstream ss;
-    ss << Number;
-    return ss.str();
-}
-
 SEST::SEST(Client& client, const std::string& address,
            const std::string& write_key)
         : _client(client), _address(address), _write_key(write_key) {
@@ -76,12 +65,43 @@ void SEST::extract_path() {
     }
 }
 
-bool SEST::set(unsigned int field_no, int value) {
+std::string number_to_string(int number) {
+    char buffer[64];
+    int status = snprintf(buffer, sizeof buffer, "%d", number);
+
+    if (status < 0)
+        return "";
+    return std::string(buffer);
+}
+
+std::string number_to_string(float number) {
+    char buffer[64];
+    int status = snprintf(buffer, sizeof buffer, "%f", number);
+
+    if (status < 0)
+        return "";
+    return std::string(buffer);
+}
+
+bool SEST::set_field(unsigned int field_no, int value) {
     if (field_no <= MAX_NUMBER_FIELDS) {
         // The user creates field types counting from 1.
         field_no--;
         // TODO: check whether the value has to be saved as a string.
-        _field_arr[field_no] = NumberToString(value);
+        _field_arr[field_no] = number_to_string(value);
+        // _field_arr[field_no] = value;
+        return true;
+    }
+    return false;
+}
+
+bool SEST::set_field(unsigned int field_no, float value) {
+    if (field_no <= MAX_NUMBER_FIELDS) {
+        // The user creates field types counting from 1.
+        field_no--;
+        // TODO: check whether the value has to be saved as a string.
+        _field_arr[field_no] = number_to_string(value);
+        // _field_arr[field_no] = value;
         return true;
     }
     return false;

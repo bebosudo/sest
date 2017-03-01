@@ -32,7 +32,8 @@ class SEST {
          const std::string& write_key);
     ~SEST();
 
-    bool set(unsigned int field_no, int value);
+    bool set_field(unsigned int field_no, float value);
+    bool set_field(unsigned int field_no, int value);
     void set_port(unsigned int port);
     void print() const;
     bool push();
