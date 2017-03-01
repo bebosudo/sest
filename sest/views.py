@@ -1,8 +1,7 @@
 from django.http import HttpResponse, HttpResponseBadRequest
-from django.shortcuts import get_object_or_404
+from django.shortcuts import render, get_object_or_404
 from django.views import generic
 
-# from .models import Channel, User, Record, Field
 from .models import *
 
 import re
@@ -16,7 +15,7 @@ messages = {
     "WRONG_WRITE_KEY": ("Incorrect SEST write key associated with the "
                         "channel you have chosen."),
     "MISSING_WRITE_KEY": "Missing writing API key.",
-    "WRONG_HTTP_METHOD": "Only POST requests allowed.",
+    "WRONG_HTTP_METHOD": "Only GET and POST requests are allowed.",
     "WRONG_FIELDS_PASSED": "One or more fields sent have wrong names.",
     "WRONG_VALUE_FIELD_ENCODING": ("One of the value sent was not coherent "
                                    "with the encoding defined for the field "
@@ -31,22 +30,21 @@ class IndexView(generic.ListView):
     context_object_name = 'latest_channels_edited'
 
     def get_queryset(self):
-        return Channel.objects.all()
+        return Channel.objects.order_by("-last_update")
 
 
-class ChannelView(generic.ListView):
-    template_name = 'sest/channel.html'
-    context_object_name = 'latest_records_added'
+# class ChannelView(generic.ListView):
+#     template_name = 'sest/channel.html'
+#     context_object_name = 'latest_records_added'
 
-    n_elements_display = 10
+#     n_elements_display = 10
 
-    def get_queryset(self):
-        r = Record.objects.order_by(
-            '-insertion_time')[:self.n_elements_display]
-        return r
+#     def get_queryset(self):
+#         r = Record.objects.order_by(
+#             '-insertion_time')[:self.n_elements_display]
+#         return r
 
-
-def upload(request, channel_id):
+def channel(request, channel_id):
     """View that analyses and performs some checks on an HTTP request
     submitted to a specific channel.
 
@@ -70,7 +68,15 @@ def upload(request, channel_id):
     http://racksburg.com/choosing-an-http-status-code/
     """
 
-    if request.method != "POST":
+    if request.method == "GET":
+        n_elements_display = 10
+
+        last_records_uploaded = Record.objects.order_by(
+            "-insertion_time")[:n_elements_display]
+        context = {"last_records_uploaded": last_records_uploaded}
+        return render(request, "sest/channel.html", context)
+
+    elif request.method != "POST":
         return HttpResponseBadRequest(messages["WRONG_HTTP_METHOD"])
 
     write_API_key = request.META.get("HTTP_{}".format(HTTP_WRITE_KEY.upper()))

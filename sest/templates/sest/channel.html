@@ -1,10 +1,16 @@
-{% if latest_records_added %}
-    <p>Displaying last {{ latest_records_added|length }} record(s):</p>
+{% if last_records_uploaded %}
+    {% if last_records_uploaded|length == 1 %}
+        <p>Displaying the last record added:</p>
+    {% else %}
+        <p>Displaying the latest {{ last_records_uploaded|length }} records added:</p>
+    {% endif %}
+
     <ul>
-    {% for record in latest_records_added %}
+    {% for record in last_records_uploaded %}
         <li>{{ record.insertion_time }}.</li>
     {% endfor %}
     </ul>
+
 {% else %}
     <p>No records are available.</p>
 {% endif %}
