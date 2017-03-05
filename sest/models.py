@@ -62,8 +62,6 @@ class NotificationEmail(models.Model):
 
 
 class Channel(models.Model):
-    MAX_NUMBER_FIELDS = 3
-
     # An autoincrement field called `id' is automatically provided by django.
     title = models.CharField(max_length=200, blank=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE)

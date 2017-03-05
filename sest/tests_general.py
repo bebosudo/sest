@@ -40,7 +40,7 @@ class UploadView(TestCase):
         """
 
         self.d = {"field{}".format(i + 1): i + 1
-                  for i in range(Channel.MAX_NUMBER_FIELDS + 2)}
+                  for i in range(settings.MAX_NUMBER_FIELDS + 2)}
         response = self.client.post("/{}/".format(self.ch.id), self.d,
                                     HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
 

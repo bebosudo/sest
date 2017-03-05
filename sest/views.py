@@ -1,6 +1,7 @@
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.shortcuts import render, get_object_or_404
 from django.views import generic
+from django.conf import settings
 
 from .models import *
 
@@ -96,7 +97,7 @@ def channel(request, channel_id):
     fields = {k: v for (k, v) in request.POST.items()
               if field_pattern.match(k)}
 
-    if len(fields) > Channel.MAX_NUMBER_FIELDS:
+    if len(fields) > settings.MAX_NUMBER_FIELDS:
         return HttpResponseBadRequest(messages["NUMBER_FIELDS_EXCEEDED"])
 
     elif len(fields) < len(request.POST.keys()):

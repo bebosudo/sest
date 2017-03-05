@@ -30,6 +30,7 @@ ALLOWED_HOSTS = ['testserver', '127.0.0.1', "sest.gq", "www.sest.gq"]
 
 
 EMAIL_BACKEND = 'postmarker.django.EmailBackend'
+MAX_NUMBER_FIELDS = 3
 
 
 # Application definition
