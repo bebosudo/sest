@@ -2,14 +2,25 @@
     {% if last_records_uploaded|length == 1 %}
         <p>Displaying the last record added:</p>
     {% else %}
-        <p>Displaying the latest {{ last_records_uploaded|length }} records added:</p>
+        <p>Displaying the last {{ last_records_uploaded|length }} records added:</p>
     {% endif %}
 
-    <ul>
+    <table border="1">
+        <tr>
+            <th>Insertion Time</th>
+            {% for f in last_records_uploaded.field_range %}
+                <th>Field {{ f }}</th>
+            {% endfor %}
+        </tr>
     {% for record in last_records_uploaded %}
-        <li>{{ record.insertion_time }}.</li>
+        <tr>
+            <td>{{ record.insertion_time }}.</td>
+            {% for f in record.field_set.all %}
+                <td>{{ f }}.</td>
+            {% endfor %}
+        </tr>
     {% endfor %}
-    </ul>
+    </table>
 
 {% else %}
     <p>No records are available.</p>

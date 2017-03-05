@@ -278,7 +278,10 @@ class Record(models.Model):
             self.channel.check_and_react(self)
 
     def __str__(self):
-        return self.insertion_time.strftime('%Y-%m-%d %H:%M:%S %Z')
+        _fields = (str(f) for f in self.field_set.all())
+        # print(len(list(_fields)))
+        return " - ".join((self.insertion_time.strftime('%Y-%m-%d %H:%M:%S %Z'),
+                           ", ".join(_fields)))
 
 
 class Field(models.Model):

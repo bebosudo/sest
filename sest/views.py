@@ -78,12 +78,13 @@ def channel(request, channel_id):
 
         last_records_uploaded = Record.objects.order_by(
             "-insertion_time")[:n_elements_display]
+
+        last_records_uploaded.field_range = range(1,
+                                                  last_records_uploaded[0].field_set.count() + 1)
         context = {"last_records_uploaded": last_records_uploaded}
         return render(request, "sest/channel.html", context)
 
     elif request.method != "POST":
-        # import ipdb
-        # ipdb.set_trace()
         # return HttpResponseBadRequest(messages["WRONG_HTTP_METHOD"])
         return HttpResponse(status=400, reason="dfs")
 
