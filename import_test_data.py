@@ -6,7 +6,7 @@
 # Copy and execute this directly into the django shell.
 
 from sest.models import *
-from datetime import datetime
+# from datetime import datetime
 
 u = User.objects.create(username="test", email="test@example.com")
 
@@ -19,8 +19,9 @@ with open("sample_without_header.csv") as fo:
     for line in fo:
         line = line.strip().split(',')
         dt, _id, t, h = line
-        dt = datetime.strptime(dt, '%Y-%m-%d %H:%M:%S UTC')
+        # dt = datetime.strptime(dt, '%Y-%m-%d %H:%M:%S UTC')
         t, h = float(t), float(h)
-        r = Record.objects.create(channel=c, insertion_time=dt, id=_id)
+        # r = Record.objects.create(channel=c, insertion_time=dt, id=_id)
+        r = Record.objects.create(channel=c, id=_id)
         r.field_set.create(field_no=1, val=t)
         r.field_set.create(field_no=2, val=h)
