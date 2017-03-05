@@ -2,7 +2,7 @@
     {% if latest_channels_edited|length == 1 %}
         <p>Displaying the last channel edited:</p>
     {% else %}
-        <p>Displaying the latest {{ latest_channels_edited|length }} channels edited:</p>
+        <p>Displaying the last {{ latest_channels_edited|length }} channels edited:</p>
     {% endif %}
 
     <ul>
@@ -12,5 +12,5 @@
     </ul>
 
 {% else %}
-    <p>No channels are available.</p>
+    <p>No channels available to display.</p>
 {% endif %}

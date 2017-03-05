@@ -72,10 +72,13 @@ def channel(request, channel_id):
     channel = get_object_or_404(Channel, pk=channel_id)
 
     if request.method == "GET":
-        n_elements_display = 10
+        n_elements_display = 20
 
-        records_to_display = Record.objects.order_by(
-            "-insertion_time")[:n_elements_display]
+        records_to_display = (Record.objects
+                              .filter(channel=channel_id)
+                              .order_by("-insertion_time")
+                              [:n_elements_display]
+                              )
 
         records_to_display.field_names = channel.get_field_names()
         context = {"last_records_uploaded": records_to_display}
