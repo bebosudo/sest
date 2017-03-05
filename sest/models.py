@@ -21,14 +21,14 @@ messages = {
 
 class WrongEncoding(Exception):
     """Raised when attempting to save an object with an encoding different than
-    the one defined in its associated FieldEncoding
+    the one defined in its associated FieldMetadata
     """
     pass
 
 
 class NoEncoding(Exception):
     """Raised when an user attempts to save an object that doesn't have a
-    matching field number with the FieldEncoding linked to the channel.
+    matching field number with the FieldMetadata linked to the channel.
     """
     pass
 
@@ -84,11 +84,14 @@ class Channel(models.Model):
     def get_field_encoding(self, field_no):
         # There should never be a MultipleObjectsReturned exception, since
         # there's a unique constraint on channel and field_no fields of the
-        # FieldEncoding model.
-        return self.fieldencoding_set.get(field_no=field_no)
+        # FieldMetadata model.
+        return self.fieldmetadata_set.get(field_no=field_no)
 
     def get_encoding(self, field_no):
         return self.get_field_encoding(field_no).encoding
+
+    def get_field_names(self):
+        return (f_md.name for f_md in self.fieldmetadata_set.all())
 
     def send_email(self, message=""):
         if not self.notification_email:
@@ -122,7 +125,7 @@ class Channel(models.Model):
                 return
 
 
-class FieldEncoding(models.Model):
+class FieldMetadata(models.Model):
     """Store the encoding used for each field the user registers, in order to
     recreate the original value.
     """
@@ -131,12 +134,13 @@ class FieldEncoding(models.Model):
     field_no = models.PositiveSmallIntegerField()
     # TODO: the user should be forced to choose only from a restricted list.
     encoding = models.CharField(max_length=50)
+    name = models.CharField(max_length=100, default="-")
 
     class Meta:
         unique_together = ("channel", "field_no")
 
     def __str__(self):
-        return "FieldEncoding obj on field no. {}".format(self.field_no)
+        return "FieldMetadata obj on field no. {}".format(self.field_no)
 
 
 class ConditionAndReaction(models.Model):
@@ -279,7 +283,6 @@ class Record(models.Model):
 
     def __str__(self):
         _fields = (str(f) for f in self.field_set.all())
-        # print(len(list(_fields)))
         return " - ".join((self.insertion_time.strftime('%Y-%m-%d %H:%M:%S %Z'),
                            ", ".join(_fields)))
 
@@ -298,14 +301,14 @@ class Field(models.Model):
     def save(self, *args, **kwargs):
         # Check whether the field that is going to be saved matches the
         # encoding defined for that specific field position: encoding are
-        # stored in the FieldEncoding objects, attached to each channel.
+        # stored in the FieldMetadata objects, attached to each channel.
         try:
             self.val
         except WrongEncoding:
             # Don't save values with a wrong encoding.
             raise ValueError
         except NoEncoding:
-            # Refuse to save values without an associated FieldEncoding.
+            # Refuse to save values without an associated FieldMetadata.
             # This should never happen since the user should choose the
             # encoding from a restricted and system-defined list.
             raise ValueError
@@ -320,7 +323,7 @@ class Field(models.Model):
         try:
             encoding = self.record.channel.get_encoding(field_no=self.field_no)
         except ObjectDoesNotExist:
-            # If no FieldEncoding are defined for the field the user attempts
+            # If no FieldMetadata are defined for the field the user attempts
             # to save:
             raise NoEncoding(messages["NO_ENCODING"].format(
                 self.field_no,

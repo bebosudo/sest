@@ -17,8 +17,8 @@ class UploadView(TestCase):
                                          number_fields=2
                                          )
         self.channel_uuid = str(self.ch.write_key)
-        self.ch.fieldencoding_set.create(field_no=1, encoding="float")
-        self.ch.fieldencoding_set.create(field_no=2, encoding="float")
+        self.ch.fieldmetadata_set.create(field_no=1, encoding="float")
+        self.ch.fieldmetadata_set.create(field_no=2, encoding="float")
         self.d = {"field2": 45}
 
     def test_upload_successful(self):
@@ -77,17 +77,16 @@ class UploadView(TestCase):
                          messages["MISSING_WRITE_KEY"])
 
     def test_upload_wrong_HTTP_request(self):
-        """Use a HEAD method (since the view is used for both GET and POST
-        requests) to make sure that the view exits with a 400 Bad Request code.
+        """Use a DELETE method (since we are not allowing, so far, to use it
+        -only GET and POST requests-) to make sure that the view exits with a
+        400 Bad Request code.
         """
 
         # response = self.client.post(...)
-        # response = self.client.get(...)
-        response = self.client.get("/{}/".format(self.ch.id), self.d,
-                                   HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
+        response = self.client.delete("/{}/".format(self.ch.id), self.d,
+                                      HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
 
         self.assertEqual(response.status_code, 400)
-        # I don't know
         self.assertEqual(response.content.decode("utf-8"),
                          messages["WRONG_HTTP_METHOD"])
 
@@ -149,7 +148,7 @@ class UploadView(TestCase):
 
     def test_upload_field_wrong_value_encoding(self):
         """Refuse to save a field with a value that isn't coherent with the
-        FieldEncoding associated with that specific field_no.
+        FieldMetadata associated with that specific field_no.
         """
 
         self.d["field2"] = "asdf"
@@ -165,10 +164,10 @@ class UploadView(TestCase):
 
     def test_upload_no_field_encoding_defined(self):
         """Refuse to save a record that tries to save a field that doesn't have
-        an associated FieldEncoding object linked at the channel.
+        an associated FieldMetadata object linked at the channel.
         """
 
-        self.ch.fieldencoding_set.get(field_no=2).delete()
+        self.ch.fieldmetadata_set.get(field_no=2).delete()
 
         response = self.client.post("/{}/".format(self.ch.id), self.d,
                                     HTTP_X_SEST_WRITE_KEY=self.channel_uuid)

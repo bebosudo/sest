@@ -12,8 +12,8 @@ u = User.objects.create(username="test", email="test@example.com")
 
 # c = Channel(title="test", user=u, 12345678, datetime.now())
 c = Channel.objects.create(user=u, number_fields=2)
-c.fieldencoding_set.create(field_no=1, encoding='float')
-c.fieldencoding_set.create(field_no=2, encoding='float')
+c.fieldmetadata_set.create(field_no=1, encoding='float')
+c.fieldmetadata_set.create(field_no=2, encoding='float')
 
 with open("sample_without_header.csv") as fo:
     for line in fo:

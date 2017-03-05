@@ -17,8 +17,8 @@ class Reactions(TestCase):
                                          notification_email=ne
                                          )
 
-        self.ch.fieldencoding_set.create(field_no=1, encoding="float")
-        self.ch.fieldencoding_set.create(field_no=2, encoding="float")
+        self.ch.fieldmetadata_set.create(field_no=1, encoding="float")
+        self.ch.fieldmetadata_set.create(field_no=2, encoding="float")
 
         self.channel_uuid = str(self.ch.write_key)
         self.d = {'field2': 3.141592}
@@ -77,7 +77,7 @@ class Reactions(TestCase):
         self.assertEqual(len(mail.outbox), 1)
 
     def test_react_with_email_passing_sw_on_save(self):
-        fe = self.ch.fieldencoding_set.get(field_no=2)
+        fe = self.ch.fieldmetadata_set.get(field_no=2)
         fe.encoding = "string"
         fe.save()
 

@@ -26,7 +26,7 @@ Do not change the order or insert new reqs in the middle of the list.
 
 10. ~~At the saving time, check that the values are consistent with their field encoding.~~
 
-1. **[WEB]** add an (optional) name to each field (could be placed inside the FieldEncoding, since it has to be unique for every field.. maybe the name can be changed from FieldEncoding to something more generic)
+1. ~~add an (optional) name to each field (could be placed inside the FieldEncoding, since it has to be unique for every field.. maybe the name can be changed from FieldEncoding to something more generic)~~ done, and changed FieldEncoding to FieldMetadata
 
 1. ~~create tests for the ConditionAndReaction class~~
 
@@ -35,7 +35,7 @@ Cornercase: if the user already certified their registration email, there's no n
 
 1. **[WEB]** translations.
 
-15. ~~Make sure that there are no more than one FieldEncoding object for each field_no (there should be something like a composite pk on the channel and the field_no).~~
+15. ~~Make sure that there are no more than one FieldMetadata object for each field_no (there should be something like a composite pk on the channel and the field_no).~~
 
 1. update the secret_settings_example.py file ~~(and rename them secret_settings{,_example}.py)~~
 

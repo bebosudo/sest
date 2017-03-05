@@ -68,32 +68,26 @@ def channel(request, channel_id):
     http://racksburg.com/choosing-an-http-status-code/
     """
 
-    # If a get request is tried along with a writing key, abort.
-    if (request.method == "GET" and
-            request.META.get("HTTP_{}".format(HTTP_WRITE_KEY.upper()))):
-        return HttpResponseBadRequest(messages["WRONG_HTTP_METHOD"])
+    channel = get_object_or_404(Channel, pk=channel_id)
 
-    elif request.method == "GET":
+    if request.method == "GET":
         n_elements_display = 10
 
-        last_records_uploaded = Record.objects.order_by(
+        records_to_display = Record.objects.order_by(
             "-insertion_time")[:n_elements_display]
 
-        last_records_uploaded.field_range = range(1,
-                                                  last_records_uploaded[0].field_set.count() + 1)
-        context = {"last_records_uploaded": last_records_uploaded}
+        records_to_display.field_names = channel.get_field_names()
+        context = {"last_records_uploaded": records_to_display}
         return render(request, "sest/channel.html", context)
 
     elif request.method != "POST":
-        # return HttpResponseBadRequest(messages["WRONG_HTTP_METHOD"])
-        return HttpResponse(status=400, reason="dfs")
+        return HttpResponseBadRequest(messages["WRONG_HTTP_METHOD"])
+        # return HttpResponse(status=400, reason="dfs")
 
     write_API_key = request.META.get("HTTP_{}".format(HTTP_WRITE_KEY.upper()))
 
     if not write_API_key:
         return HttpResponseBadRequest(messages["MISSING_WRITE_KEY"])
-
-    channel = get_object_or_404(Channel, pk=channel_id)
 
     if str(channel.write_key) != write_API_key:
         return HttpResponseBadRequest(messages["WRONG_WRITE_KEY"])
@@ -132,8 +126,8 @@ def channel(request, channel_id):
                 r.field_set.create(field_no=field_no, val=val)
             except ValueError:
                 # A value with a wrong encoding (according to the associated
-                # FieldEncoding object on the field number) was going to be
-                # saved.
+                # encoding in the FieldMetadata object on the field number) was
+                # going to be saved.
                 r.delete()
                 return HttpResponseBadRequest(
                     messages["WRONG_VALUE_FIELD_ENCODING"]

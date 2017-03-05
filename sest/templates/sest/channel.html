@@ -8,8 +8,8 @@
     <table border="1">
         <tr>
             <th>Insertion Time</th>
-            {% for f in last_records_uploaded.field_range %}
-                <th>Field {{ f }}</th>
+            {% for name in last_records_uploaded.field_names %}
+                <th>{{ name }}</th>
             {% endfor %}
         </tr>
     {% for record in last_records_uploaded %}
