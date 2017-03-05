@@ -310,7 +310,7 @@ class Field(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return "{} - {}".format(self.record, self.val)
+        return "{}".format(self.val)
 
     @property
     def val(self):

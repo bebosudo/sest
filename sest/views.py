@@ -68,7 +68,12 @@ def channel(request, channel_id):
     http://racksburg.com/choosing-an-http-status-code/
     """
 
-    if request.method == "GET":
+    # If a get request is tried along with a writing key, abort.
+    if (request.method == "GET" and
+            request.META.get("HTTP_{}".format(HTTP_WRITE_KEY.upper()))):
+        return HttpResponseBadRequest(messages["WRONG_HTTP_METHOD"])
+
+    elif request.method == "GET":
         n_elements_display = 10
 
         last_records_uploaded = Record.objects.order_by(
@@ -77,7 +82,10 @@ def channel(request, channel_id):
         return render(request, "sest/channel.html", context)
 
     elif request.method != "POST":
-        return HttpResponseBadRequest(messages["WRONG_HTTP_METHOD"])
+        # import ipdb
+        # ipdb.set_trace()
+        # return HttpResponseBadRequest(messages["WRONG_HTTP_METHOD"])
+        return HttpResponse(status=400, reason="dfs")
 
     write_API_key = request.META.get("HTTP_{}".format(HTTP_WRITE_KEY.upper()))
 

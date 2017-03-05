@@ -42,7 +42,7 @@ class Reactions(TestCase):
                                                 action="email"
                                                 )
 
-        self.client.post('/{}/upload/'.format(self.ch.id), self.d,
+        self.client.post('/{}/'.format(self.ch.id), self.d,
                          HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
 
         self.assertEqual(len(mail.outbox), 0)
@@ -56,7 +56,7 @@ class Reactions(TestCase):
                                                 action="email"
                                                 )
 
-        self.client.post('/{}/upload/'.format(self.ch.id), self.d,
+        self.client.post('/{}/'.format(self.ch.id), self.d,
                          HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
 
         self.assertEqual(len(mail.outbox), 1)
@@ -71,7 +71,7 @@ class Reactions(TestCase):
                                                 action="email"
                                                 )
 
-        self.client.post('/{}/upload/'.format(self.ch.id), self.d,
+        self.client.post('/{}/'.format(self.ch.id), self.d,
                          HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
 
         self.assertEqual(len(mail.outbox), 1)
@@ -90,7 +90,7 @@ class Reactions(TestCase):
                                                 )
 
         self.d = {"field2": s + " and sth else.. etc etc"}
-        self.client.post('/{}/upload/'.format(self.ch.id), self.d,
+        self.client.post('/{}/'.format(self.ch.id), self.d,
                          HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
 
         self.assertEqual(len(mail.outbox), 1)

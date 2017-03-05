@@ -26,7 +26,7 @@ class UploadView(TestCase):
         test the correct upload of data to a channel, using the view `upload'.
         """
 
-        response = self.client.post("/{}/upload/".format(self.ch.id), self.d,
+        response = self.client.post("/{}/".format(self.ch.id), self.d,
                                     HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
 
         self.assertEqual(self.ch.record_set.all()[0].field_set.count(),
@@ -41,7 +41,7 @@ class UploadView(TestCase):
 
         self.d = {"field{}".format(i + 1): i + 1
                   for i in range(Channel.MAX_NUMBER_FIELDS + 2)}
-        response = self.client.post("/{}/upload/".format(self.ch.id), self.d,
+        response = self.client.post("/{}/".format(self.ch.id), self.d,
                                     HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
 
         self.assertEqual(response.status_code, 400)
@@ -56,7 +56,7 @@ class UploadView(TestCase):
 
         self.channel_uuid = uuid.uuid4()
 
-        response = self.client.post("/{}/upload/".format(self.ch.id), self.d,
+        response = self.client.post("/{}/".format(self.ch.id), self.d,
                                     HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
 
         self.assertEqual(response.status_code, 400)
@@ -69,7 +69,7 @@ class UploadView(TestCase):
         write API key is provided.
         """
 
-        response = self.client.post("/{}/upload/".format(self.ch.id), self.d)
+        response = self.client.post("/{}/".format(self.ch.id), self.d)
         #                             HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
 
         self.assertEqual(response.status_code, 400)
@@ -77,16 +77,17 @@ class UploadView(TestCase):
                          messages["MISSING_WRITE_KEY"])
 
     def test_upload_wrong_HTTP_request(self):
-        """Use a POST http (made with the Client class from the test module) to
-        make sure that the view exits with a 400 Bad Request code in case the
-        write API key is provided.
+        """Use a HEAD method (since the view is used for both GET and POST
+        requests) to make sure that the view exits with a 400 Bad Request code.
         """
 
         # response = self.client.post(...)
-        response = self.client.get("/{}/upload/".format(self.ch.id), self.d,
+        # response = self.client.get(...)
+        response = self.client.get("/{}/".format(self.ch.id), self.d,
                                    HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
 
         self.assertEqual(response.status_code, 400)
+        # I don't know
         self.assertEqual(response.content.decode("utf-8"),
                          messages["WRONG_HTTP_METHOD"])
 
@@ -97,7 +98,7 @@ class UploadView(TestCase):
         """
 
         self.d = {}
-        response = self.client.post("/{}/upload/".format(self.ch.id), self.d,
+        response = self.client.post("/{}/".format(self.ch.id), self.d,
                                     HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
 
         self.assertEqual(response.status_code, 400)
@@ -108,7 +109,7 @@ class UploadView(TestCase):
         """Refuse to save an object with a wrong key name out of two."""
 
         self.d.update({"field__number_missing__": 3.141592})
-        response = self.client.post("/{}/upload/".format(self.ch.id), self.d,
+        response = self.client.post("/{}/".format(self.ch.id), self.d,
                                     HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
 
         self.assertEqual(response.status_code, 400)
@@ -121,7 +122,7 @@ class UploadView(TestCase):
         self.d = {"field__number_missing__": 3.141592,
                   "field__here_as_well__": 3.141592}
 
-        response = self.client.post("/{}/upload/".format(self.ch.id), self.d,
+        response = self.client.post("/{}/".format(self.ch.id), self.d,
                                     HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
 
         self.assertEqual(response.status_code, 400)
@@ -137,7 +138,7 @@ class UploadView(TestCase):
 
         self.d["field3"] = ""
 
-        response = self.client.post("/{}/upload/".format(self.ch.id), self.d,
+        response = self.client.post("/{}/".format(self.ch.id), self.d,
                                     HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
 
         self.assertEqual(response.status_code, 400)
@@ -153,7 +154,7 @@ class UploadView(TestCase):
 
         self.d["field2"] = "asdf"
 
-        response = self.client.post("/{}/upload/".format(self.ch.id), self.d,
+        response = self.client.post("/{}/".format(self.ch.id), self.d,
                                     HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
 
         self.assertEqual(response.status_code, 400)
@@ -169,7 +170,7 @@ class UploadView(TestCase):
 
         self.ch.fieldencoding_set.get(field_no=2).delete()
 
-        response = self.client.post("/{}/upload/".format(self.ch.id), self.d,
+        response = self.client.post("/{}/".format(self.ch.id), self.d,
                                     HTTP_X_SEST_WRITE_KEY=self.channel_uuid)
 
         self.assertEqual(response.status_code, 400)
