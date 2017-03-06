@@ -20,15 +20,19 @@ const char* pswd = secret_pswd.c_str();
 const std::string channel = secret_channel;
 const std::string key = secret_key;
 WiFiClient client;
-const int httpPort = 80;
+// const int httpPort = 80;
 SEST sest(client, channel, key);
 
 void setup() {
     Serial.begin(115200);
-    delay(100);
+    delay(5000);
 
+    Serial.print("SSID name: ");
     Serial.print(ssid);
+    Serial.println();
+    Serial.print("SSID password: ");
     Serial.print(pswd);
+    Serial.println();
 
     WiFi.begin(ssid, pswd);
     while (WiFi.status() != WL_CONNECTED) {
