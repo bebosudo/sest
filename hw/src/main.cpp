@@ -12,7 +12,9 @@
 #define DHTTYPE DHT11 // I'm using the DHT 11
 #define DHTPIN 4      // Wire DHT to GPIO4 on the ESP8266
 DHT dht(DHTPIN, DHTTYPE);
-enum field_meaning { TEMPERATURE, HUMIDITY };
+
+const int TEMPERATURE = 1;
+const int HUMIDITY = 2;
 
 const char* ssid = secret_ssid.c_str();
 const char* pswd = secret_pswd.c_str();
@@ -34,9 +36,9 @@ void setup() {
     Serial.print(pswd);
     Serial.println();
 
-    WiFi.begin(ssid, pswd);
     while (WiFi.status() != WL_CONNECTED) {
-        delay(500);
+        WiFi.begin(ssid, pswd);
+        delay(1000);
         Serial.print(".");
     }
 
@@ -60,10 +62,11 @@ void loop() {
 
     Serial.println(String("Temperature: ") + t + "'C - Humidity: " + h + "%");
 
-    sest.set_field(TEMPERATURE, t);
-    sest.set_field(HUMIDITY, h);
-    sest.push();
+    Serial.println(sest.set_field(TEMPERATURE, t).c_str());
+    Serial.println(sest.set_field(HUMIDITY, h).c_str());
 
-    // Wait 30 seconds before pushing again.
-    delay(30000);
+    Serial.println(sest.push().c_str());
+
+    // Wait 20 seconds before pushing again.
+    delay(20000);
 }
