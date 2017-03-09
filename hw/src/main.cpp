@@ -22,11 +22,12 @@ const char* pswd = secret_pswd.c_str();
 const std::string channel = secret_channel;
 const std::string key = secret_key;
 WiFiClient client;
-// const int httpPort = 80;
+
 SEST sest(client, channel, key);
 
 void setup() {
     Serial.begin(115200);
+
     delay(5000);
 
     Serial.print("SSID name: ");
@@ -36,6 +37,8 @@ void setup() {
     Serial.print(pswd);
     Serial.println();
 
+    // Put the ESP8266 in station mode.
+    WiFi.mode(WIFI_STA);
     while (WiFi.status() != WL_CONNECTED) {
         WiFi.begin(ssid, pswd);
         delay(1000);
@@ -43,6 +46,8 @@ void setup() {
     }
 
     dht.begin();
+
+    // sest.set_port(8000);
 }
 
 void loop() {
@@ -60,13 +65,15 @@ void loop() {
         return;
     }
 
-    Serial.println(String("Temperature: ") + t + "'C - Humidity: " + h + "%");
+    Serial.println(String("\n----------------\nTemperature: ") + t +
+                   "'C - Humidity: " + h + "%\n");
 
-    Serial.println(sest.set_field(TEMPERATURE, t).c_str());
-    Serial.println(sest.set_field(HUMIDITY, h).c_str());
+    sest.set_field(TEMPERATURE, t);
+    sest.set_field(HUMIDITY, h);
 
-    Serial.println(sest.push().c_str());
+    std::string output = sest.push();
+    Serial.println(output.c_str());
 
-    // Wait 20 seconds before pushing again.
-    delay(20000);
+    // Wait a while before pushing again.
+    delay(60000);
 }

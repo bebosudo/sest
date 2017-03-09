@@ -2,6 +2,7 @@ from django.http import HttpResponse, HttpResponseBadRequest
 from django.shortcuts import render, get_object_or_404
 from django.views import generic
 from django.conf import settings
+from django.views.decorators.csrf import csrf_exempt
 
 from .models import *
 
@@ -9,7 +10,10 @@ import re
 
 field_pattern = re.compile(r"(field[0-9]+)")
 field_extract_number = re.compile(r"field([0-9]+)")
-HTTP_WRITE_KEY = "X_SEST_Write_Key"
+
+# https://docs.djangoproject.com/en/1.10/ref/request-response
+#                                               /#django.http.HttpRequest.META
+HTTP_WRITE_KEY = "X_SEST_Write_Key".upper()
 
 messages = {
     "NUMBER_FIELDS_EXCEEDED": "Max number of fields exceeded.",
@@ -33,18 +37,10 @@ class IndexView(generic.ListView):
     def get_queryset(self):
         return Channel.objects.order_by("-last_update")
 
+# https://docs.djangoproject.com/en/1.10/ref/csrf/#django.views.decorators.csrf.csrf_exempt
 
-# class ChannelView(generic.ListView):
-#     template_name = 'sest/channel.html'
-#     context_object_name = 'latest_records_added'
 
-#     n_elements_display = 10
-
-#     def get_queryset(self):
-#         r = Record.objects.order_by(
-#             '-insertion_time')[:self.n_elements_display]
-#         return r
-
+@csrf_exempt
 def channel(request, channel_id):
     """View that analyses and performs some checks on an HTTP request
     submitted to a specific channel.
@@ -86,9 +82,8 @@ def channel(request, channel_id):
 
     elif request.method != "POST":
         return HttpResponseBadRequest(messages["WRONG_HTTP_METHOD"])
-        # return HttpResponse(status=400, reason="dfs")
 
-    write_API_key = request.META.get("HTTP_{}".format(HTTP_WRITE_KEY.upper()))
+    write_API_key = request.META.get("HTTP_{}".format(HTTP_WRITE_KEY))
 
     if not write_API_key:
         return HttpResponseBadRequest(messages["MISSING_WRITE_KEY"])

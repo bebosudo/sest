@@ -8,7 +8,7 @@
 
 const int MAX_NUMBER_FIELDS = 10;
 const std::string USER_AGENT = "SEST_CLIENT";
-const std::string HTTP_WRITE_KEY = "X_SEST_Write_Key";
+const std::string HTTP_WRITE_KEY = "X-SEST-Write-Key";
 
 class SEST {
     Client& _client;
@@ -33,7 +33,7 @@ class SEST {
     ~SEST();
 
     bool set_field(unsigned int field_no, int value);
-    std::string set_field(unsigned int field_no, float value);
+    std::string set_field(unsigned int field_no, double value);
     void set_port(unsigned int port);
     void print() const;
     std::string push();
