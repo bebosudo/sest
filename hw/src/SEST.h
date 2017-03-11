@@ -33,7 +33,7 @@ class SEST {
     ~SEST();
 
     bool set_field(unsigned int field_no, int value);
-    std::string set_field(unsigned int field_no, double value);
+    bool set_field(unsigned int field_no, double value);
     void set_port(unsigned int port);
     void print() const;
     std::string push();

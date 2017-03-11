@@ -104,14 +104,13 @@ bool SEST::set_field(unsigned int field_no, int value) {
     return false;
 }
 
-std::string SEST::set_field(unsigned int field_no, double value) {
+bool SEST::set_field(unsigned int field_no, double value) {
     if (field_no <= MAX_NUMBER_FIELDS and field_no != 0) {
         // The user creates field types counting from 1, and we remap the
         // position to a position one step lower in order to save it into
         // C-style arrays.
         _field_arr[field_no - 1] = number_to_string(value);
-        return _field_arr[field_no - 1];
-        // return true;
+        return true;
     }
     return false;
 }
