@@ -39,6 +39,11 @@ void setup() {
 
     // Put the ESP8266 in station mode.
     WiFi.mode(WIFI_STA);
+    // Disable the persistency (saving the WiFi network information to flash to
+    // restore them at the next restart), since at each restart we explicitly
+    // point the module to a specific network.
+    WiFi.persistent(false);
+
     while (WiFi.status() != WL_CONNECTED) {
         WiFi.begin(ssid, pswd);
         delay(1000);
@@ -71,9 +76,11 @@ void loop() {
     sest.set_field(TEMPERATURE, t);
     sest.set_field(HUMIDITY, h);
 
-    std::string output = sest.push();
-    Serial.println(output.c_str());
+    std::string output;
+    sest.push(output);
+    Serial.print(output.c_str());
+    Serial.println("**************");
 
     // Wait a while before pushing again.
-    delay(60000);
+    delay(6000);
 }

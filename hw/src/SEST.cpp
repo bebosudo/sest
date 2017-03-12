@@ -1,18 +1,26 @@
-// SEST library. 2017, Alberto Chiusole
+// SEST library.
+// Alberto Chiusole -- 2017.
 
 #include "SEST.h"
-#include <algorithm>
+#include "Arduino.h"
+// #include <algorithm>
 #include <cstdint>
 #include <math.h>
 #include <string>
+
+const unsigned int MS_WAIT_BEFORE_TIMEOUT = 5000;
 
 SEST::SEST(Client& client, const std::string& address,
            const std::string& write_key)
         : _client(client), _address(address), _write_key(write_key) {
 
     // Strip newlines from the URI.
-    _address.erase(std::remove(_address.begin(), _address.end(), '\n'),
-                   _address.end());
+    // Can't do it with algorithm due to a bug in the esp8266/arduino package:
+    // https://github.com/platformio/platformio-core/issues/653
+    for (int p = _address.find("\n"); p != (int)std::string::npos;
+         p = _address.find("\n")) {
+        _address.erase(p, 1);
+    }
 
     // Remove the possible heading http(s) the user could insert.
     std::string prot = "http://";
@@ -134,7 +142,8 @@ std::string SEST::_get_fields_encoded() const {
             // position of the field by one step.
             body += number_to_string((int)i + 1);
             body += "=";
-            body += std::string(_field_arr[i]);
+            // The array is already made of strings.
+            body += _field_arr[i];
         }
     }
     return body;
@@ -146,11 +155,25 @@ void SEST::_reset_fields() {
     }
 }
 
-std::string SEST::push() {
+bool SEST::push() {
+    std::string to_be_discarded;
+    push(to_be_discarded);
+}
+
+bool SEST::push(std::string& collect_response) {
     std::string body = _get_fields_encoded();
 
-    if (!_connect_to_server() || _write_key == "" || body == "") {
-        return "ERROR when connecting to the server.";
+    collect_response = collect_response + "Trying to connect to server '" +
+                       _host + "', pointing to path '/" + _path + "'.\n\n";
+    if (!_connect_to_server()) {
+        _read_http_response(collect_response);
+        return false;
+    } else if (_write_key == "") {
+        collect_response += "Missing writing key for the chosen channel.";
+        return false;
+    } else if (body == "") {
+        collect_response += "Missing body message (no fields to send).";
+        return false;
     }
 
     std::string header = "POST /";
@@ -170,19 +193,57 @@ std::string SEST::push() {
     header += "\n\n";
 
     if (!_client.print(header.c_str())) {
-        return "ERROR when uploading.";
+        collect_response += "ERROR when uploading.";
+        return false;
     }
     if (!_client.print(body.c_str())) {
-        return "ERROR when uploading.";
+        collect_response += "ERROR when uploading.";
+        return false;
     }
+
+    collect_response += "Attempting to send:" + header + body + "\n\n";
     _reset_fields();
 
-    return header + body;
-    // return true;
+    if (_read_http_response(collect_response)) {
+        collect_response += "Package reached destination.";
+        return true;
+    }
+    collect_response += "Some problems arose while sending.";
+    return false;
 }
 
-///////////////////////////////////////
-// For DEBUGGING:
-void SEST::print() const {
-    printf("%s\n%s\n----\n", _host.c_str(), _path.c_str());
+bool SEST::_read_http_response(std::string& response) const {
+    long unsigned int start_time = millis();
+
+    // Wait until the client has something to say, or until enough time has
+    // passed before receiving a response. Reason to use delay:
+    // https://github.com/esp8266/Arduino/issues/34#issuecomment-102302835
+    while (_client.available() == 0 &&
+           millis() - start_time < MS_WAIT_BEFORE_TIMEOUT) {
+        delay(100);
+    }
+
+    // If the client still has nothing to say, it means that timeout
+    // arrived.
+    if (_client.available() == 0) {
+        response +=
+            " ERROR: timeout when waiting for the server to reply (address: ";
+        response += _address;
+        response += ", TCP port: ";
+        response += number_to_string((int)_port);
+        response += ").";
+        return false;
+    }
+
+    size_t s = 100;
+    char buffer[s];
+    size_t size_read = 0;
+    while (_client.available() != 0) {
+        size_read += _client.read((uint8_t*)buffer, s);
+        // Empty the buffer on the ESP wifi module.
+        // _client.flush();
+        response += std::string(buffer);
+    }
+
+    return size_read == s;
 }

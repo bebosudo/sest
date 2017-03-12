@@ -1,4 +1,5 @@
-// SEST library. 2017, Alberto Chiusole
+// SEST library.
+// Alberto Chiusole -- 2017.
 
 #ifndef __SEST_H__
 #define __SEST_H__
@@ -26,6 +27,7 @@ class SEST {
     bool _connect_to_server();
     std::string _get_fields_encoded() const;
     void _reset_fields();
+    bool _read_http_response(std::string& response) const;
 
   public:
     SEST(Client& client, const std::string& address,
@@ -35,8 +37,8 @@ class SEST {
     bool set_field(unsigned int field_no, int value);
     bool set_field(unsigned int field_no, double value);
     void set_port(unsigned int port);
-    void print() const;
-    std::string push();
+    bool push();
+    bool push(std::string& collect_response);
 };
 
 #endif
