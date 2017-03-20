@@ -38,11 +38,11 @@ void setup() {
     Serial.println();
 
     // Put the ESP8266 in station mode.
-    WiFi.mode(WIFI_STA);
+    // WiFi.mode(WIFI_STA);
     // Disable the persistency (saving the WiFi network information to flash to
     // restore them at the next restart), since at each restart we explicitly
     // point the module to a specific network.
-    WiFi.persistent(false);
+    // WiFi.persistent(false);
 
     while (WiFi.status() != WL_CONNECTED) {
         WiFi.begin(ssid, pswd);
@@ -56,6 +56,9 @@ void setup() {
 }
 
 void loop() {
+    // TODO: check whether the ESP is still connected to the network at every
+    // iteration.
+
     // Reading temperature or humidity takes about 250 milliseconds!
     // Sensor readings may also take up to 2 seconds (its a very slow sensor).
     float h = dht.readHumidity();
@@ -79,7 +82,7 @@ void loop() {
     std::string output;
     sest.push(output);
     Serial.print(output.c_str());
-    Serial.println("**************");
+    Serial.println("**************\n");
 
     // Wait a while before pushing again.
     delay(6000);

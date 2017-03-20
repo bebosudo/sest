@@ -81,34 +81,27 @@ def channel(request, channel_id):
         return render(request, "sest/channel.html", context)
 
     elif request.method != "POST":
-        # return HttpResponseBadRequest(messages["WRONG_HTTP_METHOD"])
-        return HttpResponse(messages["WRONG_HTTP_METHOD"])
+        return HttpResponseBadRequest(messages["WRONG_HTTP_METHOD"])
 
     write_API_key = request.META.get("HTTP_{}".format(HTTP_WRITE_KEY))
 
     if not write_API_key:
-        # return HttpResponseBadRequest(messages["MISSING_WRITE_KEY"])
-        return HttpResponse(messages["MISSING_WRITE_KEY"])
+        return HttpResponseBadRequest(messages["MISSING_WRITE_KEY"])
 
     if str(channel.write_key) != write_API_key:
-        # print("!= api key: needed {}, given {}".format(
-        #     str(channel.write_key), write_API_key))
-        # return HttpResponseBadRequest(messages["WRONG_WRITE_KEY"])
-        return HttpResponse(messages["WRONG_WRITE_KEY"])
+        return HttpResponseBadRequest(messages["WRONG_WRITE_KEY"])
 
     # Use a regex to select only the fields like 'field<number>'.
     fields = {k: v for (k, v) in request.POST.items()
               if field_pattern.match(k)}
 
     if len(fields) > settings.MAX_NUMBER_FIELDS:
-        # return HttpResponseBadRequest(messages["NUMBER_FIELDS_EXCEEDED"])
-        return HttpResponse(messages["NUMBER_FIELDS_EXCEEDED"])
+        return HttpResponseBadRequest(messages["NUMBER_FIELDS_EXCEEDED"])
 
     elif len(fields) < len(request.POST.keys()):
         # This means that the user inserted at least one field with an
         # incorrect name.
-        # return HttpResponseBadRequest(messages["WRONG_FIELDS_PASSED"])
-        return HttpResponse(messages["WRONG_FIELDS_PASSED"])
+        return HttpResponseBadRequest(messages["WRONG_FIELDS_PASSED"])
 
     elif any(fields):
         # The object has to be created before attaching fields objects to it.
@@ -120,8 +113,7 @@ def channel(request, channel_id):
             # Store in the db only the fields with a value. Clean up in case.
             if not val:
                 r.delete()
-                # return HttpResponseBadRequest(
-                return HttpResponse(
+                return HttpResponseBadRequest(
                     messages["EMPTY_VALUES_NOT_ALLOWED"]
                 )
 
@@ -136,8 +128,7 @@ def channel(request, channel_id):
                 # encoding in the FieldMetadata object on the field number) was
                 # going to be saved.
                 r.delete()
-                # return HttpResponseBadRequest(
-                return HttpResponse(
+                return HttpResponseBadRequest(
                     messages["WRONG_VALUE_FIELD_ENCODING"]
                 )
 
@@ -148,5 +139,4 @@ def channel(request, channel_id):
 
     else:
         # This means that the user tried to insert an empty record.
-        # return HttpResponseBadRequest(messages["WRONG_FIELDS_PASSED"])
-        return HttpResponse(messages["WRONG_FIELDS_PASSED"])
+        return HttpResponseBadRequest(messages["WRONG_FIELDS_PASSED"])

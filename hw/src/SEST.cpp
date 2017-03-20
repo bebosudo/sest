@@ -164,51 +164,52 @@ bool SEST::push(std::string& collect_response) {
     std::string body = _get_fields_encoded();
 
     collect_response = collect_response + "Trying to connect to server '" +
-                       _host + "', pointing to path '/" + _path + "'.\n\n";
+                       _host + "', port '" + number_to_string((int)_port) +
+                       "', pointing to path '/" + _path + "'.\n";
     if (!_connect_to_server()) {
         _read_http_response(collect_response);
         return false;
     } else if (_write_key == "") {
-        collect_response += "Missing writing key for the chosen channel.";
+        collect_response += "Missing writing key for the chosen channel.\n";
         return false;
     } else if (body == "") {
-        collect_response += "Missing body message (no fields to send).";
+        collect_response += "Missing body message (no fields to send).\n";
         return false;
     }
 
     std::string header = "POST /";
     header += _path;
-    header += " HTTP/1.1\nHost: ";
+    header += " HTTP/1.1\r\nHost: ";
     header += _host;
-    header += "\nConnection: close\nUser-Agent: ";
-    header += USER_AGENT;
-    header += "\n";
+    header += "\r\nAccept: */*\r\n";
     header += HTTP_WRITE_KEY;
     header += ": ";
     header += _write_key;
-    header += "\nContent-Type: application/x-www-form-urlencoded\n";
-    header += "Content-Length: ";
-
+    header += "\r\nUser-Agent: ";
+    header += USER_AGENT;
+    header += "\r\n";
+    header += "Content-type: application/x-www-form-urlencoded\r\n";
+    header += "Connection: close\r\nContent-Length: ";
     header += number_to_string((int)body.length());
-    header += "\n\n";
+    header += "\r\n\r\n";
 
     if (!_client.print(header.c_str())) {
-        collect_response += "ERROR when uploading.";
+        collect_response += "ERROR when uploading.\n";
         return false;
     }
     if (!_client.print(body.c_str())) {
-        collect_response += "ERROR when uploading.";
+        collect_response += "ERROR when uploading.\n";
         return false;
     }
 
-    collect_response += "Attempting to send:" + header + body + "\n\n";
+    collect_response += "Attempting to send:\n\n" + header + body + "\n\n";
     _reset_fields();
 
     if (_read_http_response(collect_response)) {
-        collect_response += "Package reached destination.";
+        collect_response += "Package reached destination.\n";
         return true;
     }
-    collect_response += "Some problems arose while sending.";
+    collect_response += "Some problems arose while sending.\n";
     return false;
 }
 
@@ -231,7 +232,7 @@ bool SEST::_read_http_response(std::string& response) const {
         response += _address;
         response += ", TCP port: ";
         response += number_to_string((int)_port);
-        response += ").";
+        response += ").\n";
         return false;
     }
 

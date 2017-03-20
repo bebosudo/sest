@@ -16,7 +16,7 @@
         <tr>
             <td>{{ record.insertion_time }}.</td>
             {% for f in record.field_set.all %}
-                <td>{{ f }}.</td>
+                <td>{{ f }}</td>
             {% endfor %}
         </tr>
     {% endfor %}
