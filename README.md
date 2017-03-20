@@ -20,7 +20,7 @@ You can verify that this step took place correctly by noticing the "(venv)" stri
 ```pip install django```
 
 6. Create and populate the "secret_things" module
-```echo "SECRET_KEY='supersecretkey'" > weather_station_website/secret_things.py```
+```echo "SECRET_KEY='supersecretkey'" > sest_settings/secret_things.py```
 
 7. Run the test suite
 ```./manage.py test -k```
