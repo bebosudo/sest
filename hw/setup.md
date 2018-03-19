@@ -31,8 +31,10 @@ Leftmost foot of AMS1117 to GND, central to 3.3V output, rightmost to 5V input. 
 **Important**: to load things on the ESP, set GPIO0 to GND only when restarting/giving power/booting it up, then detach it, and it's in "load mode".
 Make sure to have the proper driver for CP2102 usb to uart device for windows installed: https://www.silabs.com/products/development-tools/software/usb-to-uart-bridge-vcp-drivers
 
-Then, once platformio is installed (python2 only :( ) run: `pio run -t upload`.
-
 Make sure to set WiFi credentials correctly in `src/secret_settings.h`.
 
+Then, once platformio is installed (python2 only :( ) run: `pio run -t upload`.
+
 To read the ouput from the serial on the terminal use: `pio device monitor`.
+
+To compile, load and see the output on the terminal with a single command: `pio run -t upload && pio device monitor` on a terminal with bash support (like the one installed with Git on windows).
