@@ -33,4 +33,6 @@ Make sure to have the proper driver for CP2102 usb to uart device for windows in
 
 Then, once platformio is installed (python2 only :( ) run: `pio run -t upload`.
 
-Make sure to set WiFi credentials correctly in `src/secret_settings.h`
+Make sure to set WiFi credentials correctly in `src/secret_settings.h`.
+
+To read the ouput from the serial on the terminal use: `pio device monitor`.
