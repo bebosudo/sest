@@ -38,11 +38,11 @@ void setup() {
     Serial.println();
 
     // Put the ESP8266 in station mode.
-    // WiFi.mode(WIFI_STA);
+    WiFi.mode(WIFI_STA);
     // Disable the persistency (saving the WiFi network information to flash to
     // restore them at the next restart), since at each restart we explicitly
     // point the module to a specific network.
-    // WiFi.persistent(false);
+    WiFi.persistent(false);
 
     while (WiFi.status() != WL_CONNECTED) {
         WiFi.begin(ssid, pswd);
@@ -50,7 +50,7 @@ void setup() {
         Serial.print(".");
     }
 
-    dht.begin();
+    //dht.begin();
 
     // sest.set_port(8000);
 }
